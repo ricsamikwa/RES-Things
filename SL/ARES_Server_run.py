@@ -21,7 +21,7 @@ args=parser.parse_args()
 LR = config.LR
 offload = args.offload
 first = True # First initializaiton control
-ip_address = '192.168.5.22'
+ip_address = '192.168.1.38'
 
 logger.info('Preparing Sever.')
 sever = Sever(0, ip_address, config.SERVER_PORT, 'VGG5')
@@ -31,15 +31,15 @@ first = False
 state_dim = 2*config.G
 action_dim = config.G
 
-if offload:
+#if offload:
 	#Initialize trained RL agent 
-	agent = PPO.PPO(state_dim, action_dim, config.action_std, config.rl_lr, config.rl_betas, config.rl_gamma, config.K_epochs, config.eps_clip)
-	agent.policy.load_state_dict(torch.load('./PPO_FedAdapt.pth'))
+	# agent = PPO.PPO(state_dim, action_dim, config.action_std, config.rl_lr, config.rl_betas, config.rl_gamma, config.K_epochs, config.eps_clip)
+	# agent.policy.load_state_dict(torch.load('./PPO_FedAdapt.pth'))
 
 if offload:
 	logger.info('ARES Training')
 else:
-	logger.info('Classic L Training')
+	logger.info('Classic Local Training')
 
 res = {}
 res['trianing_time'], res['test_acc_record'], res['bandwidth_record'] = [], [], []
