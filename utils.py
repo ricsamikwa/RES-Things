@@ -34,7 +34,7 @@ torch.manual_seed(0)
 
 def get_local_dataloader(CLIENT_IDEX, cpu_count):
 	indices = list(range(N))
-	part_tr = indices[int((N/K) * CLIENT_IDEX) : int((N/K) * (CLIENT_IDEX+1))]
+	part_tr = indices[int(5000 * 0) : int(5000 * (0+1))]
 
 	transform_train = transforms.Compose([
 	transforms.RandomCrop(32, padding=4),
@@ -44,7 +44,9 @@ def get_local_dataloader(CLIENT_IDEX, cpu_count):
 ])
 	trainset = torchvision.datasets.CIFAR10(
 		root=dataset_path, train=True, download=True, transform=transform_train)
+	
 	subset = Subset(trainset, part_tr)
+	#print(subset)
 	trainloader = DataLoader(
 		subset, batch_size=B, shuffle=True, num_workers=cpu_count)
 

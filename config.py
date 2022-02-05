@@ -4,7 +4,7 @@ import sys
 SERVER_ADDR= '192.168.0.10'
 SERVER_PORT = 51000
 
-K = 5 # Number of devices
+K = 1 # Number of devices
 G = 3 # Number of groups
 
 # Unique clients order
@@ -14,8 +14,8 @@ CLIENTS_LIST= ['192.168.0.14', '192.168.0.15', '192.168.0.25', '192.168.0.36', '
 
 # Dataset configration
 dataset_name = 'CIFAR10'
-#home = sys.path[0].split('FedAdapt')[0] + 'FedAdapt'
-dataset_path = './dataset/'+ dataset_name +'/'
+home = sys.path[0].split('RES-Things')[0] + 'RES-Things'
+dataset_path = home +'/datasets/'+ dataset_name +'/'
 N = 50000 # data length
 
 
