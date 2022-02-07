@@ -32,9 +32,7 @@ state_dim = 2*config.G
 action_dim = config.G
 
 #if offload:
-	#Initialize trained RL agent 
-	# agent = PPO.PPO(state_dim, action_dim, config.action_std, config.rl_lr, config.rl_betas, config.rl_gamma, config.K_epochs, config.eps_clip)
-	# agent.policy.load_state_dict(torch.load('./PPO_FedAdapt.pth'))
+	#handle changes of split layers
 
 if offload:
 	logger.info('ARES Training')
@@ -70,7 +68,8 @@ for r in range(config.R):
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 	if offload:
 		# ADAPT SPLIT LAYERS HERE!
-		split_layers = sever.adaptive_offload(agent, state)
+		split_layers = [2 , 3, 2]
+		#split_layers = sever.adaptive_offload(agent, state)
 	else:
 		split_layers = config.split_layer
 

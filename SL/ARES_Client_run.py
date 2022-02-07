@@ -48,64 +48,8 @@ for r in range(config.R):
 	logger.info('====================================>')
 	logger.info('ROUND: {} START'.format(r))
 
-	'''
-	# Network bandwidth changing
-	if socket.gethostname() == 'jetson-desktop':
-		if r == 50 and flag == False : #start from next round
-			#cmd = "sudo tc qdisc add dev wlan0 root tbf rate 5mbit latency 10ms burst 1600"
-			pass #Jetson needs rebuild linux kernel
-		if r == 60 and flag == True : #start from next round
-			#cmd = "sudo tc qdisc del dev wlan0 root"
-			pass
-
-	if socket.gethostname() == 'pi41':
-		if r == 60 and flag == False : #start from next round
-			cmd = "sudo tc qdisc add dev wlan0 root tbf rate 5mbit latency 10ms burst 1600"
-			print(cmd)					
-			os.system(cmd)
-			flag = True
-		if r == 70 and flag == True : #start from next round
-			cmd = "sudo tc qdisc del dev wlan0 root"
-			print(cmd)					
-			os.system(cmd)
-			flag = False
-
-	if socket.gethostname() == 'pi42':
-		if r == 70 and flag == False : #start from next round
-			cmd = "sudo tc qdisc add dev wlan0 root tbf rate 5mbit latency 10ms burst 1600"
-			print(cmd)					
-			os.system(cmd)
-			flag = True
-		if r == 80 and flag == True : #start from next round
-			cmd = "sudo tc qdisc del dev wlan0 root"
-			print(cmd)					
-			os.system(cmd)
-			flag = False
-
-	if socket.gethostname() == 'pi31':
-		if r == 80 and flag == False : #start from next round
-			cmd = "sudo tc qdisc add dev wlan0 root tbf rate 5mbit latency 10ms burst 1600"
-			print(cmd)					
-			os.system(cmd)
-			flag = True
-		if r == 90 and flag == True : #start from next round
-			cmd = "sudo tc qdisc del dev wlan0 root"
-			print(cmd)					
-			os.system(cmd)
-			flag = False
-
-	if socket.gethostname() == 'pi32':
-		if r == 90 and flag == False : #start from next round
-			cmd = "sudo tc qdisc add dev wlan0 root tbf rate 5mbit latency 10ms burst 1600"
-			print(cmd)					
-			os.system(cmd)
-			flag = True
-		if r == 100 and flag == True : #start from next round
-			cmd = "sudo tc qdisc del dev wlan0 root"
-			print(cmd)					
-			os.system(cmd)
-			flag = False
-	'''
+	#network traffic modifications
+	
 	training_time = client.train(trainloader)
 	logger.info('ROUND: {} END'.format(r))
 	
