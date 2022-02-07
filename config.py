@@ -46,7 +46,8 @@ model_name = 'VGG5'
 model_size = 1.28
 model_flops = 32.902
 total_flops = 8488192
-split_layer = [6 , 6, 6] #Initial split layers
+# split_layer = [3, 3, 3] #Initial split layers - with offloading
+split_layer = [6, 6, 6] #Initial split layers no offloading
 #split_layer = [6 ] #Initial split layer for one
 model_len = 7
 

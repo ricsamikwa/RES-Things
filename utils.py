@@ -1,4 +1,4 @@
-'''Some helper functions for FedAdapt, including:
+'''Some helper functions for RES-Things, including:
 	- get_local_dataloader: split dataset and get respective dataloader.
 	- get_model: build the model according to location and split layer.
 	- send_msg: send msg with type checking.

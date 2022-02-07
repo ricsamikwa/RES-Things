@@ -15,7 +15,7 @@ import utils
 #import PPO
 
 parser=argparse.ArgumentParser()
-parser.add_argument('--offload', help='FedAdapt or classic FL mode', type= utils.str2bool, default= False)
+parser.add_argument('--offload', help='ARES or classic local mode', type= utils.str2bool, default= False)
 args=parser.parse_args()
 
 LR = config.LR
