@@ -122,8 +122,9 @@ client.initialize(6, offload, first, config.LR)
 first = False 
 
 logger.info('Preparing Data.')
-#cpu_count = multiprocessing.cpu_count()
-trainloader, classes= utils.get_local_dataloader(1, 0)
+# this has problems on mac
+cpu_count = multiprocessing.cpu_count()
+trainloader, classes= utils.get_local_dataloader(1, cpu_count)
 
 for r in range(config.R):
 	logger.info('====================================>')

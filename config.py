@@ -4,14 +4,16 @@ import sys
 SERVER_ADDR= '192.168.1.38'
 SERVER_PORT = 51000
 
-K = 1 # Number of devices
+K = 2 # Number of devices
 G = 3 # Number of groups
 
 # Unique clients order
-HOST2IP = {'pi':'192.168.1.33' , 'nano2':'192.168.1.41', 'nano4':'192.168.1.40' , 'nano6':'192.168.1.42', 'nano8':'192.168.1.43'}
-CLIENTS_CONFIG= {'192.168.1.33':0, '192.168.1.41':1, '192.168.1.40':2, '192.168.1.42':3, '192.168.1.43':4}
+# HOST2IP = {'pi':'192.168.1.33' , 'nano2':'192.168.1.41', 'nano4':'192.168.1.40' , 'nano6':'192.168.1.42', 'nano8':'192.168.1.43'}
+# CLIENTS_CONFIG= {'192.168.1.33':0, '192.168.1.41':1, '192.168.1.40':2, '192.168.1.42':3, '192.168.1.43':4}
 # CLIENTS_LIST= ['192.168.1.33', '192.168.1.41', '192.168.1.40', '192.168.1.42', '192.168.1.43'] 
-CLIENTS_LIST= ['192.168.1.41'] 
+HOST2IP = {'nano4':'192.168.1.40' , 'nano6':'192.168.1.42'}
+CLIENTS_CONFIG= {'192.168.1.40':0 , '192.168.1.42':1}
+CLIENTS_LIST= ['192.168.1.40' , '192.168.1.42'] 
 
 # Dataset configration
 dataset_name = 'CIFAR10'
@@ -33,7 +35,8 @@ model_name = 'VGG5'
 model_size = 1.28
 model_flops = 32.902
 total_flops = 8488192
-split_layer = [6,6,6,6,6] #Initial split layers
+split_layer = [6 , 6] #Initial split layers
+#split_layer = [6,6,6,6,6] #Initial split layers
 model_len = 7
 
 

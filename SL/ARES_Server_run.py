@@ -39,7 +39,7 @@ action_dim = config.G
 if offload:
 	logger.info('ARES Training')
 else:
-	logger.info('Classic Local Training')
+	logger.info('Classic Local (FL) Training')
 
 res = {}
 res['trianing_time'], res['test_acc_record'], res['bandwidth_record'] = [], [], []
@@ -69,6 +69,7 @@ for r in range(config.R):
 
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 	if offload:
+		# ADAPT SPLIT LAYERS HERE!
 		split_layers = sever.adaptive_offload(agent, state)
 	else:
 		split_layers = config.split_layer
