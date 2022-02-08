@@ -61,7 +61,7 @@ for r in range(config.R):
 	if offload:
 		config.split_layer = client.recv_msg(client.sock)[1]
 		#config.split_layer = [2]
-		print(config.split_layer)
+		# print(config.split_layer)
 
 	if r > 49:
 		LR = config.LR * 0.1

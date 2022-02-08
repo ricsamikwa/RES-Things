@@ -13,18 +13,18 @@ G = 3 # Number of groups
 # CLIENTS_LIST= ['192.168.1.33', '192.168.1.41', '192.168.1.40', '192.168.1.42', '192.168.1.43'] 
 
 # #Three Clients
-# K = 3 # Number of devices
+K = 3 # Number of devices
 
-# HOST2IP = {'nano4':'192.168.1.40' , 'nano6':'192.168.1.42', 'nano8':'192.168.1.43'}
-# CLIENTS_CONFIG= {'192.168.1.40':0 , '192.168.1.42':1, '192.168.1.43':2}
-# CLIENTS_LIST= ['192.168.1.40' , '192.168.1.42', '192.168.1.43'] 
+HOST2IP = {'nano4':'192.168.1.40' , 'nano6':'192.168.1.42', 'nano8':'192.168.1.43'}
+CLIENTS_CONFIG= {'192.168.1.40':0 , '192.168.1.42':1, '192.168.1.43':2}
+CLIENTS_LIST= ['192.168.1.40' , '192.168.1.42', '192.168.1.43'] 
 
 # The initial one
-K = 1 # Number of devices
+# K = 1 # Number of devices
 
-HOST2IP = {'nano6':'192.168.1.42' }
-CLIENTS_CONFIG= {'192.168.1.42':0 }
-CLIENTS_LIST= ['192.168.1.42'] 
+# HOST2IP = {'nano6':'192.168.1.42' }
+# CLIENTS_CONFIG= {'192.168.1.42':0 }
+# CLIENTS_LIST= ['192.168.1.42'] 
 
 
 # Dataset configration
@@ -48,8 +48,8 @@ model_size = 1.28
 model_flops = 32.902
 total_flops = 8488192
 # split_layer = [2, 3, 2] #Initial split layers - with offloading
-# split_layer = [6, 6, 6] #Initial split layers no offloading
-split_layer = [6] #Initial split layer for one
+split_layer = [6, 6, 6] #Initial split layers no offloading
+# split_layer = [6] #Initial split layer for one
 model_len = 7
 
 
