@@ -19,7 +19,7 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--offload', help='ARES or classic local mode', type= utils.str2bool, default= False)
 args=parser.parse_args()
 
-ip_address = config.HOST2IP[socket.gethostname()]
+ip_address = config.HOST2IP[socket.gethostname().replace('-desktop', '')]
 index = config.CLIENTS_CONFIG[ip_address]
 datalen = config.N / config.K
 split_layer = config.split_layer[index]
@@ -59,7 +59,8 @@ for r in range(config.R):
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 	s_time_rebuild = time.time()
 	if offload:
-		config.split_layer = client.recv_msg(client.sock)[1]
+		#config.split_layer = client.recv_msg(client.sock)[1]
+		config.split_layer = [2]
 
 	if r > 49:
 		LR = config.LR * 0.1

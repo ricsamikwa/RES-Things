@@ -68,7 +68,8 @@ for r in range(config.R):
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 	if offload:
 		# ADAPT SPLIT LAYERS HERE!
-		split_layers = [2 , 3, 2]
+		split_layers = [2]
+		config.split_layer = split_layers
 		#split_layers = sever.adaptive_offload(agent, state)
 	else:
 		split_layers = config.split_layer

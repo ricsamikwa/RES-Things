@@ -123,12 +123,15 @@ class Sever(Communicator):
 		pass
 
 	def _thread_training_offloading(self, client_ip):
-		iteration = int((config.N / (config.K * config.B)))
+		#issues here!!
+		# iteration = int((config.N / (config.K * config.B)))
+		iteration = 50
+		logger.info(str(iteration) + ' iterations!!')
 		for i in range(iteration):
 			msg = self.recv_msg(self.client_socks[client_ip], 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
 			smashed_layers = msg[1]
 			labels = msg[2]
-
+			# logger.info(' received smashed data !!')
 			inputs, targets = smashed_layers.to(self.device), labels.to(self.device)
 			self.optimizers[client_ip].zero_grad()
 			outputs = self.nets[client_ip](inputs)

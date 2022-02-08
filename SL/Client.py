@@ -77,6 +77,7 @@ class Client(Communicator):
 				self.optimizer.step()
 			
 		else: # Offloading training
+			# print(enumerate(tqdm.tqdm(trainloader)).size)
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
 				self.optimizer.zero_grad()
@@ -84,6 +85,8 @@ class Client(Communicator):
 
 				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
 				self.send_msg(self.sock, msg)
+
+				# logger.info('waiting to receive gradients')
 
 				# Wait receiving server gradients
 				gradients = self.recv_msg(self.sock)[1].to(self.device)
