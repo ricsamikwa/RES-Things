@@ -199,11 +199,12 @@ class Sever(Communicator):
 
 		return labels
 
-	def adaptive_offload(self, agent, state):
-		action = agent.exploit(state)
-		action = self.expand_actions(action, config.CLIENTS_LIST)
+	# The function to change more
+	def adaptive_offload(self):
+		# action = agent.exploit(state)
+		# action = self.expand_actions(action, config.CLIENTS_LIST)
 
-		config.split_layer = self.action_to_layer(action)
+		config.split_layer = [2]
 		logger.info('Next Round OPs: ' + str(config.split_layer))
 
 		msg = ['SPLIT_LAYERS',config.split_layer]

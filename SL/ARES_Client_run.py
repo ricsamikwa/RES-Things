@@ -59,8 +59,9 @@ for r in range(config.R):
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 	s_time_rebuild = time.time()
 	if offload:
-		#config.split_layer = client.recv_msg(client.sock)[1]
-		config.split_layer = [2]
+		config.split_layer = client.recv_msg(client.sock)[1]
+		#config.split_layer = [2]
+		print(config.split_layer)
 
 	if r > 49:
 		LR = config.LR * 0.1
