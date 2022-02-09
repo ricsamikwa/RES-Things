@@ -126,7 +126,7 @@ class Sever(Communicator):
 		#issues here!!
 		# iteration = int((config.N / (config.K * config.B)))
 		iteration = 50
-		logger.info(str(iteration) + ' iterations!!')
+		# logger.info(str(iteration) + ' iterations!!')
 		for i in range(iteration):
 			msg = self.recv_msg(self.client_socks[client_ip], 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
 			smashed_layers = msg[1]

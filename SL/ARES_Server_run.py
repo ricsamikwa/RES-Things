@@ -1,6 +1,7 @@
 import time
 import torch
 import pickle
+import csv
 import argparse
 
 import logging
@@ -39,8 +40,8 @@ if offload:
 else:
 	logger.info('Classic Local (FL) Training')
 
-res = {}
-res['trianing_time'], res['test_acc_record'], res['bandwidth_record'] = [], [], []
+# res = {}
+# res['trianing_time'], res['test_acc_record'], res['bandwidth_record'] = [], [], []
 
 for r in range(config.R):
 	logger.info('====================================>')
@@ -53,15 +54,16 @@ for r in range(config.R):
 
 	# Recording each round training time, bandwidth and test accuracy
 	trianing_time = e_time - s_time
-	res['trianing_time'].append(trianing_time)
-	res['bandwidth_record'].append(bandwidth)
+	# res['trianing_time'].append(trianing_time)
+	# res['bandwidth_record'].append(bandwidth)
 
 	test_acc = sever.test(r)
-	res['test_acc_record'].append(test_acc)
+	# res['test_acc_record'].append(test_acc)
 
-	with open(config.home + '/results/ARES_res.pkl','wb') as f:
-				pickle.dump(res,f)
-
+	with open(config.home + '/results/ARES_res_adapt.csv','a', newline='') as file:
+		writer = csv.writer(file)
+		writer.writerow([ trianing_time, test_acc])
+    
 	logger.info('Round Finish')
 	logger.info('==> Round Training Time: {:}'.format(trianing_time))
 

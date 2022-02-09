@@ -1,6 +1,7 @@
 import torch
 import socket
 import time
+import csv
 import multiprocessing
 import os
 import argparse
@@ -19,7 +20,8 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--offload', help='ARES or classic local mode', type= utils.str2bool, default= False)
 args=parser.parse_args()
 
-ip_address = config.HOST2IP[socket.gethostname().replace('-desktop', '')]
+hostname = socket.gethostname().replace('-desktop', '')
+ip_address = config.HOST2IP[hostname]
 index = config.CLIENTS_CONFIG[ip_address]
 datalen = config.N / config.K
 split_layer = config.split_layer[index]
@@ -48,9 +50,13 @@ for r in range(config.R):
 	logger.info('====================================>')
 	logger.info('ROUND: {} START'.format(r))
 
-	#network traffic modifications
-	
-	training_time = client.train(trainloader)
+	#training time per round
+	training_time, network_speed = client.train(trainloader)
+
+	with open(config.home + '/results/' + hostname+ '.csv','a', newline='') as file:
+		writer = csv.writer(file)
+		writer.writerow([network_speed, training_time])
+
 	logger.info('ROUND: {} END'.format(r))
 	
 	logger.info('==> Waiting for aggregration')

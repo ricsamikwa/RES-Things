@@ -56,6 +56,8 @@ class Client(Communicator):
 		self.send_msg(self.sock, msg)
 		msg = self.recv_msg(self.sock,'MSG_TEST_NETWORK')[1]
 		network_time_end = time.time()
+
+		# send a model to and from a server (size in bytes * 8 * 2)
 		network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s 
 
 		logger.info('Network speed is {:}'.format(network_speed))
@@ -67,7 +69,10 @@ class Client(Communicator):
 		time_training_c = 0
 		self.net.to(self.device)
 		self.net.train()
-		if self.split_layer == (config.model_len -1): # No offloading training
+
+		iteration_count = 0
+
+		if self.split_layer == (config.model_len -1): # Classic local training
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
 				self.optimizer.zero_grad()
@@ -75,8 +80,9 @@ class Client(Communicator):
 				loss = self.criterion(outputs, targets)
 				loss.backward()
 				self.optimizer.step()
+				iteration_count+=1
 			
-		else: # Offloading training
+		else: # Split learning
 			# print(enumerate(tqdm.tqdm(trainloader)).size)
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
@@ -93,17 +99,23 @@ class Client(Communicator):
 
 				outputs.backward(gradients)
 				self.optimizer.step()
+				iteration_count+=1
 
 		e_time_total = time.time()
 		logger.info('Total time: ' + str(e_time_total - s_time_total))
 
-		training_time_pr = (e_time_total - s_time_total) / int((config.N / (config.K * config.B)))
+		# iteration = int((config.N / (config.K * config.B)))
+		iteration = 50
+		logger.info(str(iteration_count) + ' iterations!!')
+
+
+		training_time_pr = (e_time_total - s_time_total) /iteration
 		logger.info('training_time_per_iteration: ' + str(training_time_pr))
 
 		msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
 		self.send_msg(self.sock, msg)
 
-		return e_time_total - s_time_total
+		return e_time_total - s_time_total, network_speed
 		
 	def upload(self):
 		msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
