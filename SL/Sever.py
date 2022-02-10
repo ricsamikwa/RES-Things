@@ -204,7 +204,8 @@ class Sever(Communicator):
 		# action = agent.exploit(state)
 		# action = self.expand_actions(action, config.CLIENTS_LIST)
 
-		config.split_layer = [2, 3, 2]
+		# 1 3 5 splitting same hardware configuration
+		config.split_layer = [1, 3, 5]
 		logger.info('Next Round OPs: ' + str(config.split_layer))
 
 		msg = ['SPLIT_LAYERS',config.split_layer]
