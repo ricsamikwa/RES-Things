@@ -52,8 +52,13 @@ for r in range(config.R):
 
 	#training time per round
 	training_time, network_speed = client.train(trainloader)
+	
+	if offload:
+		filename =''+ hostname+'-'+str(config.split_layer[index])+'.csv'
+	else:
+		filename = ''+ hostname+'.csv'
 
-	with open(config.home + '/results/' + hostname+ '.csv','a', newline='') as file:
+	with open(config.home + '/results/' + filename,'a', newline='') as file:
 		writer = csv.writer(file)
 		writer.writerow([network_speed, training_time])
 

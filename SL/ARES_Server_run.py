@@ -60,7 +60,19 @@ for r in range(config.R):
 	test_acc = sever.test(r)
 	# res['test_acc_record'].append(test_acc)
 
-	with open(config.home + '/results/ARES_res_adapt.csv','a', newline='') as file:
+	if offload:
+		# ADAPT SPLIT LAYERS HERE!
+		# split_layers = [2]
+		# config.split_layer = split_layers
+		split_layers = sever.adaptive_offload()
+		splitlist = ''.join(str(e) for e in split_layers)
+		filename = 'ARES_split_'+splitlist+'.csv'
+	else:
+		split_layers = config.split_layer
+		filename = 'classic_local.csv'
+
+
+	with open(config.home +'/results/'+filename,'a', newline='') as file:
 		writer = csv.writer(file)
 		writer.writerow([ trianing_time, test_acc])
     
@@ -68,13 +80,7 @@ for r in range(config.R):
 	logger.info('==> Round Training Time: {:}'.format(trianing_time))
 
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
-	if offload:
-		# ADAPT SPLIT LAYERS HERE!
-		# split_layers = [2]
-		# config.split_layer = split_layers
-		split_layers = sever.adaptive_offload()
-	else:
-		split_layers = config.split_layer
+	
 
 	if r > 49:
 		LR = config.LR * 0.1
