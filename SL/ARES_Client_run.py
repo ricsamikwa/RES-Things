@@ -54,13 +54,29 @@ for r in range(config.R):
 	training_time, network_speed = client.train(trainloader)
 
 	if offload:
-		filename =''+ hostname+'-'+str(config.split_layer[index])+'_config_1.csv'
+		filename =''+ hostname+'-'+str(config.split_layer[index])+'_config_2.csv'
 	else:
-		filename = ''+ hostname+'_config_1.csv'
+		filename = ''+ hostname+'_config_2.csv'
+
+	#   # current input
+    # with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_current0_input') as t:
+    #     current = ((t.read()))
+    #     print(current)
+
+    # # voltage 
+    # with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_voltage0_input') as t:
+    #     voltage = ((t.read()))
+    #     print(voltage)
+
+	power = 0
+    # power input
+	with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_power0_input') as t:
+		power = ((t.read()))
+		print(power)
 
 	with open(config.home + '/results/' + filename,'a', newline='') as file:
 		writer = csv.writer(file)
-		writer.writerow([network_speed, training_time])
+		writer.writerow([network_speed, training_time, int(power)])
 
 	logger.info('ROUND: {} END'.format(r))
 	
