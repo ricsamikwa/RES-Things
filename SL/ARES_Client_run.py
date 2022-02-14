@@ -15,6 +15,7 @@ sys.path.append('../')
 from Client import Client
 import config
 import utils
+from threading import Thread
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--offload', help='ARES or classic local mode', type= utils.str2bool, default= False)
@@ -46,54 +47,88 @@ else:
 
 flag = False # Bandwidth control flag.
 
-for r in range(config.R):
-	logger.info('====================================>')
-	logger.info('ROUND: {} START'.format(r))
+power_flag = True
 
-	#training time per round
-	training_time, network_speed = client.train(trainloader)
-
-	if offload:
-		filename =''+ hostname+'-'+str(config.split_layer[index])+'_config_2.csv'
-	else:
-		filename = ''+ hostname+'_config_2.csv'
-
-	#   # current input
-    # with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_current0_input') as t:
-    #     current = ((t.read()))
-    #     print(current)
-
-    # # voltage 
-    # with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_voltage0_input') as t:
-    #     voltage = ((t.read()))
-    #     print(voltage)
-
+def power_monitor_thread():
 	power = 0
-    # power input
-	with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_power0_input') as t:
-		power = ((t.read()))
-		print(power)
+	# power input
 
-	with open(config.home + '/results/' + filename,'a', newline='') as file:
-		writer = csv.writer(file)
-		writer.writerow([network_speed, training_time, int(power)])
+	while power_flag:
+		with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_power0_input') as t:
+			power = ((t.read()))
+			
+			print(power)
+			time.sleep(2)
 
-	logger.info('ROUND: {} END'.format(r))
+	return
+	# filename =''+ hostname+'-'+str(config.split_layer[index])+'_config_2.csv'
+	# with open(config.home + '/results/' + filename,'a', newline='') as file:
+	# 		writer = csv.writer(file)
+	# 		writer.writerow([network_speed, training_time, int(power)])
+
+
+def training_thread(LR):
+
+	for r in range(config.R):
+		logger.info('====================================>')
+		logger.info('ROUND: {} START'.format(r))
+
+		#training time per round
+		training_time, network_speed = client.train(trainloader)
+
+		if offload:
+			filename =''+ hostname+'-'+str(config.split_layer[index])+'_config_2.csv'
+		else:
+			filename = ''+ hostname+'_config_2.csv'
+
+		#   # current input
+		# with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_current0_input') as t:
+		#     current = ((t.read()))
+		#     print(current)
+
+		# # voltage 
+		# with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_voltage0_input') as t:
+		#     voltage = ((t.read()))
+		#     print(voltage)
+
+		
+
+		with open(config.home + '/results/' + filename,'a', newline='') as file:
+			writer = csv.writer(file)
+			writer.writerow([network_speed, training_time])
+
+		logger.info('ROUND: {} END'.format(r))
+		
+		logger.info('==> Waiting for aggregration')
+		client.upload()
+
+		logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
+		s_time_rebuild = time.time()
+		if offload:
+			config.split_layer = client.recv_msg(client.sock)[1]
+			#config.split_layer = [2]
+			# print(config.split_layer)
+
+		if r > 49:
+			LR = config.LR * 0.1
+
+		client.reinitialize(config.split_layer[index], offload, first, LR)
+		e_time_rebuild = time.time()
+		logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
+		logger.info('==> Reinitialization Finish')
+	power_flag = False
+	return
 	
-	logger.info('==> Waiting for aggregration')
-	client.upload()
 
-	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
-	s_time_rebuild = time.time()
-	if offload:
-		config.split_layer = client.recv_msg(client.sock)[1]
-		#config.split_layer = [2]
-		# print(config.split_layer)
 
-	if r > 49:
-		LR = config.LR * 0.1
+# create two new threads
+t1 = Thread(target=power_monitor_thread)
+t2 = Thread(target=training_thread, args=(LR,))
 
-	client.reinitialize(config.split_layer[index], offload, first, LR)
-	e_time_rebuild = time.time()
-	logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
-	logger.info('==> Reinitialization Finish')
+# start the threads
+t1.start()
+t2.start()
+
+# wait for the threads to complete
+t2.join()
+# t1.join()
