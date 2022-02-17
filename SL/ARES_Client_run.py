@@ -15,7 +15,7 @@ sys.path.append('../')
 from Client import Client
 import config
 import utils
-from threading import Thread
+# from threading import Thread
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--offload', help='ARES or classic local mode', type= utils.str2bool, default= False)
@@ -49,50 +49,50 @@ flag = False # Bandwidth control flag.
 
 # stop_power_flag = False
 
-def power_monitor_thread(stop):
-	power = 0
-	# power input
-	filename =''+ hostname+'-'+str(config.split_layer[index])+'_power_config_2.csv'
+# def power_monitor_thread(stop):
+# 	power = 0
+# 	# power input
+# 	filename =''+ hostname+'-'+str(config.split_layer[index])+'_power_config_2.csv'
 
-	while True:
+# 	while True:
 
-		if stop():
-			break
+# 		if stop():
+# 			break
 
-		with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_power0_input') as t:
-			power = ((t.read()))
+# 		with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_power0_input') as t:
+# 			power = ((t.read()))
 
-		# print(power)	
-		with open(config.home + '/results/' + filename,'a', newline='') as file:
-			writer = csv.writer(file)
-			writer.writerow([int(power)])
+# 		# print(power)	
+# 		with open(config.home + '/results/' + filename,'a', newline='') as file:
+# 			writer = csv.writer(file)
+# 			writer.writerow([int(power)])
 			
-		time.sleep(0.5)
+# 		time.sleep(0.5)
 	
 	
-	return
+# 	return
 	
 
 
 def training_thread(LR):
-	print(hostname[0:3])
-	if hostname[0:4] == 'nano':
-		# print('this is a nano')
-		stop_threads = False
-		t1 = Thread(target=power_monitor_thread, args =(lambda : stop_threads,))
-		t1.start()
+	# print(hostname[0:3])
+	# if hostname[0:4] == 'nano':
+	# 	# print('this is a nano')
+	# 	stop_threads = False
+	# 	t1 = Thread(target=power_monitor_thread, args =(lambda : stop_threads,))
+	# 	t1.start()
 
 	for r in range(config.R):
 		logger.info('====================================>')
 		logger.info('ROUND: {} START'.format(r))
 
 		#training time per round
-		training_time, network_speed = client.train(trainloader)
+		training_time, network_speed = client.train(trainloader, hostname)
 
 		if offload:
-			filename =''+ hostname+'-'+str(config.split_layer[index])+'_config_2.csv'
+			filename =''+ hostname+'-'+str(config.split_layer[index])+'_config_4.csv'
 		else:
-			filename = ''+ hostname+'_config_2.csv'
+			filename = ''+ hostname+'_config_4.csv'
 
 		#   # current input
 		# with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_current0_input') as t:
@@ -130,10 +130,10 @@ def training_thread(LR):
 		logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
 		logger.info('==> Reinitialization Finish')
 	
-	if hostname[0:3] == 'nano':
-		stop_threads = True
-		t1.join()
-		print('thread killed')
+	# if hostname[0:3] == 'nano':
+	# 	stop_threads = True
+	# 	t1.join()
+	# 	print('thread killed')
 	
 
 training_thread(LR)

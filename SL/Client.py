@@ -5,11 +5,13 @@ import tqdm
 import time
 import numpy as np
 import sys
+import csv
 
 sys.path.append('../')
 import config
 import utils
 from Communicator import *
+from threading import Thread
 
 import logging
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -17,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 np.random.seed(0)
 torch.manual_seed(0)
+hostname = socket.gethostname().replace('-desktop', '')
+ip_address = config.HOST2IP[hostname]
+index = config.CLIENTS_CONFIG[ip_address]
 
 class Client(Communicator):
 	def __init__(self, index, ip_address, server_addr, server_port, datalen, model_name, split_layer):
@@ -49,7 +54,28 @@ class Client(Communicator):
 			self.net.load_state_dict(pweights)
 		logger.debug('Initialize Finished')
 
-	def train(self, trainloader):
+	def power_monitor_thread(self, stop):
+		power = 0
+		# power input
+		filename =''+ hostname+'-'+str(config.split_layer[index])+'_power_config_4.csv'
+
+		while True:
+
+			if stop():
+				break
+
+			with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_power0_input') as t:
+				power = ((t.read()))
+
+			# print(power)	
+			with open(config.home + '/results/' + filename,'a', newline='') as file:
+				writer = csv.writer(file)
+				writer.writerow([int(power)])
+				
+			time.sleep(0.5)
+		return
+ 
+	def train(self, trainloader, hostname):
 		# Network speed test
 		network_time_start = time.time()
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
@@ -64,6 +90,14 @@ class Client(Communicator):
 		msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
 		self.send_msg(self.sock, msg)
 
+
+		print(hostname[0:3])
+		if hostname[0:4] == 'nano':
+			# print('this is a nano')
+			stop_threads = False
+			t1 = Thread(target=self.power_monitor_thread, args =(lambda : stop_threads,))
+			t1.start()
+   
 		# Training start
 		s_time_total = time.time()
 		time_training_c = 0
@@ -100,6 +134,11 @@ class Client(Communicator):
 				outputs.backward(gradients)
 				self.optimizer.step()
 				iteration_count+=1
+    
+		if hostname[0:3] == 'nano':
+			stop_threads = True
+			t1.join()
+			print('thread killed')
 
 		e_time_total = time.time()
 		logger.info('Total time: ' + str(e_time_total - s_time_total))

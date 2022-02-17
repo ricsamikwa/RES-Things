@@ -19,19 +19,19 @@ G = 3 # Number of groups
 # CLIENTS_CONFIG= {'192.168.1.40':0 , '192.168.1.42':1, '192.168.1.43':2}
 # CLIENTS_LIST= ['192.168.1.40' , '192.168.1.42', '192.168.1.43'] 
 
-# # The initial one
-# K = 1 # Number of devices
-
-# HOST2IP = {'nano6':'192.168.1.42' }
-# CLIENTS_CONFIG= {'192.168.1.42':0 }
-# CLIENTS_LIST= ['192.168.1.42'] 
-
-# Pi only
+# The initial one
 K = 1 # Number of devices
 
-HOST2IP = {'raspberrypi':'192.168.1.44' }
-CLIENTS_CONFIG= {'192.168.1.44':0 }
-CLIENTS_LIST= ['192.168.1.44'] 
+HOST2IP = {'nano6':'192.168.1.42' }
+CLIENTS_CONFIG= {'192.168.1.42':0 }
+CLIENTS_LIST= ['192.168.1.42'] 
+
+# # Pi only
+# K = 1 # Number of devices
+
+# HOST2IP = {'raspberrypi':'192.168.1.44' }
+# CLIENTS_CONFIG= {'192.168.1.44':0 }
+# CLIENTS_LIST= ['192.168.1.44'] 
 
 # Dataset configration
 dataset_name = 'CIFAR10'
