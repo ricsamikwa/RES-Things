@@ -57,10 +57,11 @@ class Client(Communicator):
 	def power_monitor_thread(self, stop):
 		power = 0
 		# power input
-		filename =''+ hostname+'-'+str(config.split_layer[index])+'_power_config_4.csv'
-
-		while True:
-
+		filename =''+ hostname+'-'+str(config.split_layer[index])+'_power_config_6.csv'
+		time.sleep(0.4)
+		# while True:
+		for x in range(10):
+			
 			if stop():
 				break
 
@@ -72,7 +73,8 @@ class Client(Communicator):
 				writer = csv.writer(file)
 				writer.writerow([int(power)])
 				
-			time.sleep(0.5)
+			time.sleep(0.4)
+
 		return
  
 	def train(self, trainloader, hostname):
@@ -135,11 +137,6 @@ class Client(Communicator):
 				self.optimizer.step()
 				iteration_count+=1
     
-		if hostname[0:3] == 'nano':
-			stop_threads = True
-			t1.join()
-			print('thread killed')
-
 		e_time_total = time.time()
 		logger.info('Total time: ' + str(e_time_total - s_time_total))
 
@@ -153,6 +150,11 @@ class Client(Communicator):
 
 		msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
 		self.send_msg(self.sock, msg)
+  
+		if hostname[0:3] == 'nano':
+			stop_threads = True
+			t1.join()
+			print('thread killed')
 
 		return e_time_total - s_time_total, network_speed
 		

@@ -1,7 +1,8 @@
 import sys
 
 # Network configration
-SERVER_ADDR= '192.168.1.38'
+# SERVER_ADDR= '192.168.1.38'
+SERVER_ADDR= '192.168.0.175'
 SERVER_PORT = 51000
 
 G = 3 # Number of groups
@@ -22,10 +23,13 @@ G = 3 # Number of groups
 # The initial one
 K = 1 # Number of devices
 
-HOST2IP = {'nano6':'192.168.1.42' }
-CLIENTS_CONFIG= {'192.168.1.42':0 }
-CLIENTS_LIST= ['192.168.1.42'] 
+# HOST2IP = {'nano6':'192.168.1.42' }
+# CLIENTS_CONFIG= {'192.168.1.42':0 }
+# CLIENTS_LIST= ['192.168.1.42'] 
 
+HOST2IP = {'nano6':'192.168.0.143' }
+CLIENTS_CONFIG= {'192.168.0.143':0 }
+CLIENTS_LIST= ['192.168.0.143'] 
 # # Pi only
 # K = 1 # Number of devices
 

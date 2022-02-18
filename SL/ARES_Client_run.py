@@ -90,9 +90,9 @@ def training_thread(LR):
 		training_time, network_speed = client.train(trainloader, hostname)
 
 		if offload:
-			filename =''+ hostname+'-'+str(config.split_layer[index])+'_config_4.csv'
+			filename =''+ hostname+'-'+str(config.split_layer[index])+'_config_6.csv'
 		else:
-			filename = ''+ hostname+'_config_4.csv'
+			filename = ''+ hostname+'_config_6.csv'
 
 		#   # current input
 		# with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_current0_input') as t:
