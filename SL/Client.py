@@ -140,8 +140,9 @@ class Client(Communicator):
 		e_time_total = time.time()
 		logger.info('Total time: ' + str(e_time_total - s_time_total))
 
-		# iteration = int((config.N / (config.K * config.B)))
-		iteration = 50
+		iteration = int((config.N / (config.K * config.B)))
+		# this is a critical
+		iteration = 50 # verify this number 50000/(5*100) = 100, but we have 50 iterations from the data ?
 		logger.info(str(iteration_count) + ' iterations!!')
 
 
@@ -156,7 +157,7 @@ class Client(Communicator):
 			t1.join()
 			print('thread killed')
 
-		return e_time_total - s_time_total, network_speed
+		return e_time_total - s_time_total, training_time_pr, network_speed
 		
 	def upload(self):
 		msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]

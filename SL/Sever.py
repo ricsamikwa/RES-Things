@@ -125,7 +125,7 @@ class Sever(Communicator):
 	def _thread_training_offloading(self, client_ip):
 		#issues here!!
 		# iteration = int((config.N / (config.K * config.B)))
-		iteration = 50
+		iteration = 50 # verify this number 50000/(5*100) = 100, but we have 50 iterations from the data ?
 		# logger.info(str(iteration) + ' iterations!!')
 		for i in range(iteration):
 			msg = self.recv_msg(self.client_socks[client_ip], 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')

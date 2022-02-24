@@ -6,15 +6,19 @@ from numpy import sum
 
 
 def local_layerwise_time():
-    layerwise_latency = [0.020343, 0.033343, 0.023343, 0.012343, 0.03467367, 0.01111876, 0.00213267]
-    return layerwise_latency
+    forward_layerwise_latency = [0.020343, 0.033343, 0.023343, 0.012343, 0.03467367, 0.01111876, 0.00213267]
+    backward_layerwise_latency = [0.020343, 0.033343, 0.023343, 0.012343, 0.03467367, 0.01111876, 0.00213267]
+
+    return forward_layerwise_latency, backward_layerwise_latency
 def server_layerwise_time():
-    layerwise_latency = [0.0020343, 0.0033343, 0.0023343, 0.0012343, 0.003467367, 0.001111876, 0.000213267]
-    return layerwise_latency
+    forward_layerwise_latency = [0.0020343, 0.0033343, 0.0023343, 0.0012343, 0.003467367, 0.001111876, 0.000213267]
+    backward_layerwise_latency = [0.020343, 0.033343, 0.023343, 0.012343, 0.03467367, 0.01111876, 0.00213267]
+    return forward_layerwise_latency, backward_layerwise_latency
     
-def transmission_layerwise_time():
-    layerwise_latency = [0.0033343, 0.0023343, 0.0012343, 0.003467367, 0.001111876, 0.000213267]
-    return layerwise_latency
+def transmission_layerwise_time(network_throughput):
+    layerwise_data = [0.0033343, 0.0023343, 0.0012343, 0.003467367, 0.001111876, 0.000213267]
+    layerwise_latency = 1
+    return layerwise_data
 
 def training_time(layer):
     device_layerwise_time = local_layerwise_time()
