@@ -1,9 +1,10 @@
 
-# numpy implementation of argmax
 from distutils.log import error
-from numpy import argmax
+from numpy import argmin
 from numpy import asarray
 from numpy import sum
+import numpy as np
+ 
 
 
 def local_layerwise_time():
@@ -29,14 +30,14 @@ def error_calculation():
 def training_time():
     device_forward_layerwise_latency, device_backward_layerwise_latency = local_layerwise_time()
     server_forward_layerwise_latency, server_backward_layerwise_latency = server_layerwise_time()
-    trans_layerwise_time = transmission_layerwise_time()
-    error_calculation = error_calculation()
+    trans_layerwise_time = transmission_layerwise_time(40)
+    error_calculation_time = error_calculation()
     
     training_computation_time_array = []
     total_training_time_array = []
 
-    for i in len(device_forward_layerwise_latency):
-        training_computation_time_array[i] = sum(device_forward_layerwise_latency[0:i]) + sum(server_forward_layerwise_latency[i:]) + sum(server_backward_layerwise_latency[:i]) + sum(device_backward_layerwise_latency[:0]) 
+    for i in [len(device_forward_layerwise_latency)]:
+        training_computation_time_array[i] = sum(device_forward_layerwise_latency[0:i]) + sum(server_forward_layerwise_latency[i:]) + sum(server_backward_layerwise_latency[:i]) + sum(device_backward_layerwise_latency[:0]) + error_calculation_time
     
     for p in len(device_forward_layerwise_latency):
         total_training_time_array[p] = training_computation_time_array[p] + trans_layerwise_time[p]
@@ -56,16 +57,40 @@ def energy_consumption():
     trans_layerwise_time = transmission_layerwise_time()
 
     layerwise_computation_energy = [element * computation_power for element in training_computation_time_array]
-    layer
+    layerwise_transmission_energy = [element * transmission_power for element in trans_layerwise_time]
 
+    total_energy_per_iter_array = []
 
-def combination():
-    ghsdg
-def combination_with_alpha():
-    ghsdg
-# define vector
-probs = asarray([[0.4, 0.5, 0.1], [0.0, 0.0, 1.0], [0.9, 0.0, 0.1], [0.3, 0.3, 0.4]])
-print(probs.shape)
-# get argmax
-result = argmax(probs, axis=1)
-print(result)
+    for i in len(layerwise_computation_energy):
+        total_energy_per_iter_array[i] = 2 * sum(layerwise_computation_energy[0:i]) + layerwise_transmission_energy[i]
+    return total_energy_per_iter_array
+
+def ARES_optimiser(alpha):
+    
+    training_computation_time_array, total_training_time_array = training_time()
+    total_energy_per_iter_array = energy_consumption()
+    
+    #normalisation
+    norm = np.linalg.norm(total_training_time_array)
+    normal_training_time_array = total_training_time_array/norm
+    
+    norm2 = np.linalg.norm(total_energy_per_iter_array)
+    normal_energy_per_iter_array = total_energy_per_iter_array/norm2
+    
+    #scaling
+    
+    scaled_normal_training_time_array = [element * alpha for element in normal_training_time_array]
+    
+    scaled_normal_energy_per_iter_array = [element * (1 - alpha) for element in normal_energy_per_iter_array]
+    
+    optimisation_array = np.add(scaled_normal_training_time_array, scaled_normal_energy_per_iter_array)  
+
+    print(optimisation_array.shape)
+    
+    # axis 0 for now
+    result = argmax(optimisation_array, axis=0)
+    
+    return result
+
+offloading_strategy = ARES_optimiser(0.5)
+print("Current offloading strategy: "+ offloading_strategy)
