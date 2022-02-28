@@ -1,5 +1,6 @@
 
 # numpy implementation of argmax
+from distutils.log import error
 from numpy import argmax
 from numpy import asarray
 from numpy import sum
@@ -16,26 +17,48 @@ def server_layerwise_time():
     return forward_layerwise_latency, backward_layerwise_latency
     
 def transmission_layerwise_time(network_throughput):
-    layerwise_data = [0.0033343, 0.0023343, 0.0012343, 0.003467367, 0.001111876, 0.000213267]
-    layerwise_latency = 1
-    return layerwise_data
+    layerwise_data = [3343, 3343, 12343, 467367, 1876, 67]
+    layerwise_latency = [element * (1/network_throughput) for element in layerwise_data]
 
-def training_time(layer):
-    device_layerwise_time = local_layerwise_time()
-    se_layerwise_time = server_layerwise_time()
+    return layerwise_latency
+
+def error_calculation():
+    error_calc_time = 0.0001
+    return error_calc_time
+
+def training_time():
+    device_forward_layerwise_latency, device_backward_layerwise_latency = local_layerwise_time()
+    server_forward_layerwise_latency, server_backward_layerwise_latency = server_layerwise_time()
     trans_layerwise_time = transmission_layerwise_time()
+    error_calculation = error_calculation()
     
-    training_time_array = []
+    training_computation_time_array = []
+    total_training_time_array = []
 
-    for i in len(device_layerwise_time):
-        training_time_array[i] = sum(device_layerwise_time[0:i]) + sum(se_layerwise_time[i:]) + trans_layerwise_time[i]
+    for i in len(device_forward_layerwise_latency):
+        training_computation_time_array[i] = sum(device_forward_layerwise_latency[0:i]) + sum(server_forward_layerwise_latency[i:]) + sum(server_backward_layerwise_latency[:i]) + sum(device_backward_layerwise_latency[:0]) 
     
-    return training_time_array
-def power_measured():
-    layerwise_power = [0.0033343, 0.0023343, 0.0012343, 0.003467367, 0.001111876, 0.000213267]
-    return layerwise_power
+    for p in len(device_forward_layerwise_latency):
+        total_training_time_array[p] = training_computation_time_array[p] + trans_layerwise_time[p]
+
+    return training_computation_time_array, total_training_time_array
+
+def measure_power():
+    computation_power = 5000
+    transmission_power = 4000
+
+    return computation_power, transmission_power
+
 def energy_consumption():
-    ghsdg
+    
+    computation_power, transmission_power = measure_power()
+    training_computation_time_array, total_training_time_array = training_time()
+    trans_layerwise_time = transmission_layerwise_time()
+
+    layerwise_computation_energy = [element * computation_power for element in training_computation_time_array]
+    layer
+
+
 def combination():
     ghsdg
 def combination_with_alpha():
