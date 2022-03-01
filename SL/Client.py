@@ -57,7 +57,7 @@ class Client(Communicator):
 	def power_monitor_thread(self, stop):
 		power = 0
 		# power input
-		filename =''+ hostname+'-'+str(config.split_layer[index])+'_power_config_1.csv'
+		filename =''+ hostname+'-'+str(config.split_layer[index])+'_power_config_2.csv'
 		time.sleep(0.4)
 		# while True:
 		for x in range(10):

@@ -205,7 +205,7 @@ class Sever(Communicator):
 		# action = self.expand_actions(action, config.CLIENTS_LIST)
 
 		# 1 3 5 splitting same hardware configuration
-		# config.split_layer = [1, 3, 5]
+		# config.split_layer = [1, 3, 4]
 		config.split_layer = [4]
 		logger.info('Next Round OPs: ' + str(config.split_layer))
 

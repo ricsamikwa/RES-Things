@@ -1,8 +1,8 @@
 import sys
 
 # Network configration
-# SERVER_ADDR= '192.168.1.38'
-SERVER_ADDR= '192.168.0.175'
+SERVER_ADDR= '192.168.1.38'
+# SERVER_ADDR= '192.168.0.175'
 SERVER_PORT = 51000
 
 G = 3 # Number of groups
@@ -32,13 +32,13 @@ K = 1 # Number of devices
 # CLIENTS_LIST= ['192.168.0.143'] 
 # # Pi only
 
-# HOST2IP = {'raspberrypi':'192.168.1.44' }
-# CLIENTS_CONFIG= {'192.168.1.44':0 }
-# CLIENTS_LIST= ['192.168.1.44'] 
+HOST2IP = {'raspberrypi':'192.168.1.44' }
+CLIENTS_CONFIG= {'192.168.1.44':0 }
+CLIENTS_LIST= ['192.168.1.44'] 
 
-HOST2IP = {'raspberrypi':'192.168.0.105' }
-CLIENTS_CONFIG= {'192.168.0.105':0 }
-CLIENTS_LIST= ['192.168.0.105'] 
+# HOST2IP = {'raspberrypi':'192.168.0.105' }
+# CLIENTS_CONFIG= {'192.168.0.105':0 }
+# CLIENTS_LIST= ['192.168.0.105'] 
 
 # Dataset configration
 dataset_name = 'CIFAR10'

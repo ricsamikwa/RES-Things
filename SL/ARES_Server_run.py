@@ -22,8 +22,8 @@ args=parser.parse_args()
 LR = config.LR
 offload = args.offload
 first = True # First initializaiton control
-# ip_address = '192.168.1.38'
-ip_address = '192.168.0.175'
+ip_address = '192.168.1.38'
+# ip_address = '192.168.0.175'
 
 logger.info('Preparing Sever.')
 sever = Sever(0, ip_address, config.SERVER_PORT, 'VGG5')
@@ -67,10 +67,10 @@ for r in range(config.R):
 		# config.split_layer = split_layers
 		split_layers = sever.adaptive_offload()
 		splitlist = ''.join(str(e) for e in split_layers)
-		filename = 'ARES_split_'+splitlist+'_config_1.csv'
+		filename = 'ARES_split_'+splitlist+'_config_2.csv'
 	else:
 		split_layers = config.split_layer
-		filename = 'classic_local_config_1.csv'
+		filename = 'classic_local_config_2.csv'
 
 
 	with open(config.home +'/results/'+filename,'a', newline='') as file:
