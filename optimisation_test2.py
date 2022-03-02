@@ -15,11 +15,11 @@ def local_layerwise_time():
     return forward_layerwise_latency, backward_layerwise_latency
 def server_layerwise_time():
     forward_layerwise_latency = [0.0020343, 0.0033343, 0.0023343, 0.0012343, 0.003467367, 0.001111876, 0.000213267]
-    backward_layerwise_latency = [0.020343, 0.033343, 0.023343, 0.012343, 0.03467367, 0.01111876, 0.00213267]
+    backward_layerwise_latency = [0.0020343, 0.0033343, 0.0023343, 0.0012343, 0.003467367, 0.001111876, 0.000213267]
     return forward_layerwise_latency, backward_layerwise_latency
     
 def transmission_layerwise_time(network_throughput):
-    layerwise_data = [3343, 3343, 12343, 467367, 1876, 67, 7386]
+    layerwise_data = [5343009, 653343, 912343, 47367, 1876, 6789, 7386]
     layerwise_latency = [element * (1/network_throughput) for element in layerwise_data]
 
     return layerwise_latency
@@ -31,7 +31,7 @@ def error_calculation():
 def training_time():
     device_forward_layerwise_latency, device_backward_layerwise_latency = local_layerwise_time()
     server_forward_layerwise_latency, server_backward_layerwise_latency = server_layerwise_time()
-    trans_layerwise_time = transmission_layerwise_time(40)
+    trans_layerwise_time = transmission_layerwise_time(4000000)
     error_calculation_time = error_calculation()
     
     training_computation_time_array = []
@@ -54,7 +54,7 @@ def energy_consumption():
     
     computation_power, transmission_power = measure_power()
     training_computation_time_array, total_training_time_array = training_time()
-    trans_layerwise_time = transmission_layerwise_time(40)
+    trans_layerwise_time = transmission_layerwise_time(4000000)
 
     layerwise_computation_energy = [element * computation_power for element in training_computation_time_array]
     layerwise_transmission_energy = [element * transmission_power for element in trans_layerwise_time]
@@ -66,7 +66,7 @@ def energy_consumption():
     return total_energy_per_iter_array
 
 def ARES_optimiser(alpha):
-    
+    print("alpha: " + str(alpha))
     training_computation_time_array, total_training_time_array = training_time()
     total_energy_per_iter_array = energy_consumption()
     
@@ -83,6 +83,9 @@ def ARES_optimiser(alpha):
     
     scaled_normal_energy_per_iter_array = [element * (1 - alpha) for element in normal_energy_per_iter_array]
     
+    print(normal_training_time_array)
+    print(normal_energy_per_iter_array)
+    
     optimisation_array = np.add(scaled_normal_training_time_array, scaled_normal_energy_per_iter_array)  
 
     print(optimisation_array)
@@ -92,7 +95,7 @@ def ARES_optimiser(alpha):
     
     return result
 s_time_rebuild = time.time()
-offloading_strategy = ARES_optimiser(0.0000100)
+offloading_strategy = ARES_optimiser(0.4)
 e_time_rebuild = time.time()
 print("Current offloading strategy: "+ str(offloading_strategy))
 print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))
