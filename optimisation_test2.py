@@ -31,7 +31,7 @@ def error_calculation():
 def training_time():
     device_forward_layerwise_latency, device_backward_layerwise_latency = local_layerwise_time()
     server_forward_layerwise_latency, server_backward_layerwise_latency = server_layerwise_time()
-    trans_layerwise_time = transmission_layerwise_time(4000000)
+    trans_layerwise_time = transmission_layerwise_time(2000000)
     error_calculation_time = error_calculation()
     
     training_computation_time_array = []
@@ -45,8 +45,8 @@ def training_time():
     return training_computation_time_array, total_training_time_array
 
 def measure_power():
-    computation_power = 5000
-    transmission_power = 4000
+    computation_power = 5400
+    transmission_power = 3100
 
     return computation_power, transmission_power
 
@@ -54,7 +54,7 @@ def energy_consumption():
     
     computation_power, transmission_power = measure_power()
     training_computation_time_array, total_training_time_array = training_time()
-    trans_layerwise_time = transmission_layerwise_time(4000000)
+    trans_layerwise_time = transmission_layerwise_time(2000000)
 
     layerwise_computation_energy = [element * computation_power for element in training_computation_time_array]
     layerwise_transmission_energy = [element * transmission_power for element in trans_layerwise_time]
@@ -77,18 +77,22 @@ def ARES_optimiser(alpha):
     norm2 = np.linalg.norm(total_energy_per_iter_array)
     normal_energy_per_iter_array = total_energy_per_iter_array/norm2
     
+    print("==============================")
+    print(normal_training_time_array)
+    print(normal_energy_per_iter_array)
+    print("==============================")
+    print("training time argmin: "+ str(argmin(normal_training_time_array)))
+    print("energy consump argmin: "+ str(argmin(normal_energy_per_iter_array)))
+    print("==============================")
+
     #scaling
-    
     scaled_normal_training_time_array = [element * alpha for element in normal_training_time_array]
     
     scaled_normal_energy_per_iter_array = [element * (1 - alpha) for element in normal_energy_per_iter_array]
     
-    print(normal_training_time_array)
-    print(normal_energy_per_iter_array)
-    
     optimisation_array = np.add(scaled_normal_training_time_array, scaled_normal_energy_per_iter_array)  
 
-    print(optimisation_array)
+    # print(optimisation_array)
     
     # axis 0 for now
     result = argmin(optimisation_array, axis=0)
