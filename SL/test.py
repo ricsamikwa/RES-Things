@@ -11,6 +11,8 @@ import config
 import utils
 from Communicator import *
 import multiprocessing
+from torchsummary import summary
+
 
 
 import logging
@@ -39,10 +41,11 @@ class Client(Communicator):
 			self.net = utils.get_model('Client', self.model_name, self.split_layer, self.device, config.model_cfg)
 			logger.debug(self.net)
 			self.criterion = nn.CrossEntropyLoss()
+			# summary(self.net, (3, 32*32*32, 32*32*32*3*3*3))
 
 		self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
 					  momentum=0.9)
-		logger.debug('Receiving Global Weights..')
+		logger.debug('Done building the model..')
 
 		#weights = self.recv_msg(self.sock)[1]
 		# weights = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
@@ -80,25 +83,25 @@ class Client(Communicator):
 				loss.backward()
 				self.optimizer.step()
 			
-		else: # Offloading training
-			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
-				inputs, targets = inputs.to(self.device), targets.to(self.device)
-				self.optimizer.zero_grad()
-				outputs = self.net(inputs)
+		# else: # Offloading training
+		# 	for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
+		# 		inputs, targets = inputs.to(self.device), targets.to(self.device)
+		# 		self.optimizer.zero_grad()
+		# 		outputs = self.net(inputs)
 
-				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
-				self.send_msg(self.sock, msg)
+		# 		msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
+		# 		self.send_msg(self.sock, msg)
 
-				# Wait receiving server gradients
-				gradients = self.recv_msg(self.sock)[1].to(self.device)
+		# 		# Wait receiving server gradients
+		# 		gradients = self.recv_msg(self.sock)[1].to(self.device)
 
-				outputs.backward(gradients)
-				self.optimizer.step()
+		# 		outputs.backward(gradients)
+		# 		self.optimizer.step()
 
 		e_time_total = time.time()
 		logger.info('Total time: ' + str(e_time_total - s_time_total))
 
-		training_time_pr = (e_time_total - s_time_total) / int((config.N / (config.K * config.B)))
+		training_time_pr = (e_time_total - s_time_total) / 2
 		logger.info('training_time_per_iteration: ' + str(training_time_pr))
 
 		# msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
@@ -124,9 +127,11 @@ first = False
 logger.info('Preparing Data.')
 # this has problems on mac
 cpu_count = multiprocessing.cpu_count()
-trainloader, classes= utils.get_local_dataloader(1, cpu_count)
+trainloader, classes= utils.get_local_dataloader(1, 0)
 
-for r in range(config.R):
+#limit the rounds here!!!!!
+# for r in range(config.R):
+for r in range(2):
 	logger.info('====================================>')
 	logger.info('ROUND: {} START'.format(r))
 	training_time = client.train(trainloader)
@@ -143,7 +148,7 @@ for r in range(config.R):
 	if r > 49:
 		LR = config.LR * 0.1
 
-	client.reinitialize(config.split_layer[1], offload, first, config.LR)
+	client.reinitialize(config.split_layer[0], offload, first, config.LR)
 	e_time_rebuild = time.time()
 	logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
 	logger.info('==> Reinitialization Finish')
