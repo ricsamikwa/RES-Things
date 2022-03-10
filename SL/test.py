@@ -12,6 +12,9 @@ import utils
 from Communicator import *
 import multiprocessing
 from torchsummary import summary
+import torchvision.models as models
+from torch.profiler import profile, record_function, ProfilerActivity
+
 
 
 
@@ -55,7 +58,11 @@ class Client(Communicator):
 		# 	pweights = utils.split_weights_client(weights,self.net.state_dict())
 		# 	self.net.load_state_dict(pweights)
 		# logger.debug('Initialize Finished')
-
+	def trace_handler(p):
+		output = p.key_averages().table(sort_by="self_cuda_time_total", row_limit=10)
+		print(output)
+		p.export_chrome_trace("/tmp/trace_" + str(p.step_num) + ".json")
+		
 	def train(self, trainloader):
 		# Network speed test
 		# network_time_start = time.time()
@@ -76,12 +83,20 @@ class Client(Communicator):
 		self.net.train()
 		if self.split_layer == (config.model_len -1): # No offloading training
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
-				inputs, targets = inputs.to(self.device), targets.to(self.device)
-				self.optimizer.zero_grad()
-				outputs = self.net(inputs)
-				loss = self.criterion(outputs, targets)
-				loss.backward()
-				self.optimizer.step()
+				# new random stuff
+				with torch.profiler.profile(activities=[ torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA,]) as p:
+					
+					inputs, targets = inputs.to(self.device), targets.to(self.device)
+					self.optimizer.zero_grad()
+					outputs = self.net(inputs)
+					loss = self.criterion(outputs, targets)
+					loss.backward()
+					self.optimizer.step()
+
+				print(p.key_averages().table(sort_by="cpu_time_total", row_limit=-1))
+     
+				break
+
 			
 		# else: # Offloading training
 		# 	for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
@@ -101,7 +116,7 @@ class Client(Communicator):
 		e_time_total = time.time()
 		logger.info('Total time: ' + str(e_time_total - s_time_total))
 
-		training_time_pr = (e_time_total - s_time_total) / 2
+		training_time_pr = (e_time_total - s_time_total) / 1
 		logger.info('training_time_per_iteration: ' + str(training_time_pr))
 
 		# msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
@@ -116,6 +131,21 @@ class Client(Communicator):
 	def reinitialize(self, split_layers, offload, first, LR):
 		self.initialize(split_layers, offload, first, LR)
 
+
+model = models.resnet18()
+inputs = torch.randn(5, 3, 224, 224)
+
+
+
+
+
+# with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
+#     with record_function("model_inference"):
+#         model(inputs)
+
+# print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+
+
 logger.info('Preparing Client')
 client = Client(1, '192.168.5.22', 50000, 'VGG5', 6)
 
@@ -127,28 +157,40 @@ first = False
 logger.info('Preparing Data.')
 # this has problems on mac
 cpu_count = multiprocessing.cpu_count()
-trainloader, classes= utils.get_local_dataloader(1, 0)
+trainloader, classes= utils.get_local_dataloader(1, cpu_count)
 
 #limit the rounds here!!!!!
 # for r in range(config.R):
-for r in range(2):
-	logger.info('====================================>')
-	logger.info('ROUND: {} START'.format(r))
-	training_time = client.train(trainloader)
-	logger.info('ROUND: {} END'.format(r))
+# with torch.profiler.profile(
+#     activities=[
+#         torch.profiler.ProfilerActivity.CPU,
+#         torch.profiler.ProfilerActivity.CUDA,
+#     ]
+# ) as p:
+training_time = client.train(trainloader)
+# print(p.key_averages().table(
+#     sort_by="self_cuda_time_total", row_limit=-1))
+# print(p.key_averages().table(sort_by="cpu_time_total", row_limit=-1))
+
+
+# for r in range(2):
+# 	logger.info('====================================>')
+# 	logger.info('ROUND: {} START'.format(r))
+# 	training_time = client.train(trainloader)
+# 	logger.info('ROUND: {} END'.format(r))
 	
-	logger.info('==> Waiting for aggregration')
-	#client.upload()
+# 	logger.info('==> Waiting for aggregration')
+# 	#client.upload()
 
-	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
-	s_time_rebuild = time.time()
-	if offload:
-		config.split_layer = client.recv_msg(client.sock)[1]
+# 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
+# 	s_time_rebuild = time.time()
+# 	if offload:
+# 		config.split_layer = client.recv_msg(client.sock)[1]
 
-	if r > 49:
-		LR = config.LR * 0.1
+# 	if r > 49:
+# 		LR = config.LR * 0.1
 
-	client.reinitialize(config.split_layer[0], offload, first, config.LR)
-	e_time_rebuild = time.time()
-	logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
-	logger.info('==> Reinitialization Finish')
+# 	client.reinitialize(config.split_layer[0], offload, first, config.LR)
+# 	e_time_rebuild = time.time()
+# 	logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
+# 	logger.info('==> Reinitialization Finish')

@@ -1,1 +1,3 @@
 datasets/
+__pycache__/
+SL/__pycache__/
