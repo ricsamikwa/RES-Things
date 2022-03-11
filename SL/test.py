@@ -83,18 +83,19 @@ class Client(Communicator):
 		self.net.train()
 		if self.split_layer == (config.model_len -1): # No offloading training
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
+				inputs, targets = inputs.to(self.device), targets.to(self.device)
+				self.optimizer.zero_grad()
 				# new random stuff
-				with torch.profiler.profile(activities=[ torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA,]) as p:
+				with torch.profiler.profile(activities=[ torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA,], record_shapes=True) as p:
 					
-					inputs, targets = inputs.to(self.device), targets.to(self.device)
-					self.optimizer.zero_grad()
+					
 					outputs = self.net(inputs)
-					loss = self.criterion(outputs, targets)
-					loss.backward()
-					self.optimizer.step()
+				
 
-				print(p.key_averages().table(sort_by="cpu_time_total", row_limit=-1))
-     
+				print(p.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=-1))
+				loss = self.criterion(outputs, targets)
+				loss.backward()
+				self.optimizer.step()
 				break
 
 			
