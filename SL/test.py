@@ -42,6 +42,8 @@ class Client(Communicator):
 
 			logger.debug('Building Model.')
 			self.net = utils.get_model('Client', self.model_name, self.split_layer, self.device, config.model_cfg)
+			self.server_net = utils.get_model('Server', self.model_name, self.split_layer, self.device, config.model_cfg)
+
 			logger.debug(self.net)
 			self.criterion = nn.CrossEntropyLoss()
 			# summary(self.net, (3, 32*32*32, 32*32*32*3*3*3))
@@ -86,33 +88,62 @@ class Client(Communicator):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
 				self.optimizer.zero_grad()
 				# new random stuff
-				with torch.profiler.profile(activities=[ torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA,], record_shapes=True) as p:
-					
-					
-					outputs = self.net(inputs)
-				
-
-				print(p.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=-1))
+				# with torch.profiler.profile(activities=[ torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA,], record_shapes=True) as p:	
+				forward_time = time.time()	
+				outputs = self.net(inputs)
+				# print(p.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=-1))
+				forward_end_time = time.time()
 				loss = self.criterion(outputs, targets)
+				error_end_time = time.time()
 				loss.backward()
+				backward_end_time = time.time()
 				self.optimizer.step()
+				optimising_end_time = time.time()
+
+				logger.info('Forward time: ' + str(forward_end_time - forward_time))
+				logger.info('Error calc time: ' + str(error_end_time - forward_end_time))
+				logger.info('Backward time: ' + str(backward_end_time - error_end_time))
+				logger.info('Optimising time: ' + str(optimising_end_time - error_end_time))
+
 				break
 
 			
-		# else: # Offloading training
-		# 	for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
-		# 		inputs, targets = inputs.to(self.device), targets.to(self.device)
-		# 		self.optimizer.zero_grad()
-		# 		outputs = self.net(inputs)
+		else: # Offloading training
+			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
+				inputs, targets = inputs.to(self.device), targets.to(self.device)
+				self.optimizer.zero_grad()
+				
+				forward_time = time.time()	
+				outputs = self.net(inputs)
+				forward_end_time = time.time()
 
-		# 		msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
-		# 		self.send_msg(self.sock, msg)
+				
+				# msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
+				# self.send_msg(self.sock, msg)
+				# # Wait receiving server gradients
+				# gradients = self.recv_msg(self.sock)[1].to(self.device)
+				# communication_end_time = time.time()
 
-		# 		# Wait receiving server gradients
-		# 		gradients = self.recv_msg(self.sock)[1].to(self.device)
+				# server side stuff
+				#inputs, targets = smashed_layers.to(self.device), labels.to(self.device)
+				#self.optimizers[client_ip].zero_grad()
+				outputs_server = self.server_net(outputs)
+				loss = self.criterion(outputs_server, targets)
+				loss.backward()
+				self.optimizers[client_ip].step()
+				# end of server side stuff
 
-		# 		outputs.backward(gradients)
-		# 		self.optimizer.step()
+				outputs.backward(gradients)
+				backward_end_time = time.time()
+				self.optimizer.step()
+				optimising_end_time = time.time()
+
+				logger.info('Forward time: ' + str(forward_end_time - forward_time))
+				logger.info('Communication time: ' + str(communication_end_time - forward_end_time))
+				logger.info('Backward time: ' + str(backward_end_time - communication_end_time))
+				logger.info('Optimising time: ' + str(optimising_end_time - error_end_time))
+
+				break
 
 		e_time_total = time.time()
 		logger.info('Total time: ' + str(e_time_total - s_time_total))
@@ -158,7 +189,7 @@ first = False
 logger.info('Preparing Data.')
 # this has problems on mac
 cpu_count = multiprocessing.cpu_count()
-trainloader, classes= utils.get_local_dataloader(1, cpu_count)
+trainloader, classes= utils.get_local_dataloader(1, 0)
 
 #limit the rounds here!!!!!
 # for r in range(config.R):
