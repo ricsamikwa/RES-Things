@@ -128,20 +128,27 @@ class Client(Communicator):
 				#inputs, targets = smashed_layers.to(self.device), labels.to(self.device)
 				#self.optimizers[client_ip].zero_grad()
 				outputs_server = self.server_net(outputs)
-				loss = self.criterion(outputs_server, targets)
-				loss.backward()
-				self.optimizers[client_ip].step()
-				# end of server side stuff
+				server_forward_end_time = time.time()
 
-				outputs.backward(gradients)
+				loss = self.criterion(outputs_server, targets)
+				error_end_time = time.time()
+
+				loss.backward()
+				background_end_time = time.time()
+				self.optimizer.step()
+				server_end_time = time.time()
+                # loss.backward()
 				backward_end_time = time.time()
 				self.optimizer.step()
 				optimising_end_time = time.time()
 
 				logger.info('Forward time: ' + str(forward_end_time - forward_time))
-				logger.info('Communication time: ' + str(communication_end_time - forward_end_time))
-				logger.info('Backward time: ' + str(backward_end_time - communication_end_time))
-				logger.info('Optimising time: ' + str(optimising_end_time - error_end_time))
+				logger.info('Server forward time: ' + str(server_forward_end_time - forward_end_time))
+				logger.info('Error time: ' + str(error_end_time - server_forward_end_time))
+				logger.info('Backpropagation time - server: ' + str(background_end_time - error_end_time))
+    			logger.info('Optimisation time - server: ' + str(server_end_time - background_end_time))
+				logger.info('Backpropagation time - device: ' + str(backward_end_time - server_end_time))
+
 
 				break
 
@@ -183,8 +190,11 @@ client = Client(1, '192.168.5.22', 50000, 'VGG5', 6)
 
 offload = False
 first = True # First initializaiton control
-client.initialize(6, offload, first, config.LR)
-first = False 
+# first = True # First initializaiton control
+
+client.initialize(3, offload, first, config.LR)
+# first = False 
+first = True 
 
 logger.info('Preparing Data.')
 # this has problems on mac
