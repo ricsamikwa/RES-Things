@@ -46,64 +46,44 @@ class Client(Communicator):
 
 			logger.debug(self.net)
 			self.criterion = nn.CrossEntropyLoss()
-			# summary(self.net, (3, 32*32*32, 32*32*32*3*3*3))
-
-		self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
+		self.device_optimizer = optim.SGD(self.net.parameters(), lr=LR,
+					  momentum=0.9)
+		self.server_optimizer = optim.SGD(self.net.parameters(), lr=LR,
 					  momentum=0.9)
 		logger.debug('Done building the model..')
 
-		#weights = self.recv_msg(self.sock)[1]
-		# weights = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
-		# if self.split_layer == (config.model_len -1):
-		# 	self.net.load_state_dict(weights)
-		# else:
-		# 	pweights = utils.split_weights_client(weights,self.net.state_dict())
-		# 	self.net.load_state_dict(pweights)
-		# logger.debug('Initialize Finished')
 	def trace_handler(p):
 		output = p.key_averages().table(sort_by="self_cuda_time_total", row_limit=10)
 		print(output)
 		p.export_chrome_trace("/tmp/trace_" + str(p.step_num) + ".json")
 		
 	def train(self, trainloader):
-		# Network speed test
-		# network_time_start = time.time()
-		# msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-		# self.send_msg(self.sock, msg)
-		# msg = self.recv_msg(self.sock,'MSG_TEST_NETWORK')[1]
-		# network_time_end = time.time()
-		# network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s 
-
-		# logger.info('Network speed is {:}'.format(network_speed))
-		# msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
-		# self.send_msg(self.sock, msg)
 
 		# Training start
 		s_time_total = time.time()
-		time_training_c = 0
+
+		forward_time = 0	
+		forward_end_time = 0
+		server_forward_end_time = 0
+		server_backward_end_time = 0
+		device_backward_end_time = 0
+
+
 		self.net.to(self.device)
 		self.net.train()
 		if self.split_layer == (config.model_len -1): # No offloading training
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
-				self.optimizer.zero_grad()
+				self.device_optimizer.zero_grad()
 				# new random stuff
-				# with torch.profiler.profile(activities=[ torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA,], record_shapes=True) as p:	
 				forward_time = time.time()	
-				outputs = self.net(inputs)
-				# print(p.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=-1))
-				forward_end_time = time.time()
+				outputs = self.net(inputs)				
 				loss = self.criterion(outputs, targets)
-				error_end_time = time.time()
-				loss.backward()
-				backward_end_time = time.time()
-				self.optimizer.step()
-				optimising_end_time = time.time()
+				forward_end_time = time.time()
 
-				logger.info('Forward time: ' + str(forward_end_time - forward_time))
-				logger.info('Error calc time: ' + str(error_end_time - forward_end_time))
-				logger.info('Backward time: ' + str(backward_end_time - error_end_time))
-				logger.info('Optimising time: ' + str(optimising_end_time - error_end_time))
+				loss.backward()
+				self.device_optimizer.step()
+				device_backward_end_time = time.time()
 
 				break
 
@@ -111,57 +91,47 @@ class Client(Communicator):
 		else: # Offloading training
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
-				self.optimizer.zero_grad()
 				
+				# client forward
 				forward_time = time.time()	
+				self.device_optimizer.zero_grad()
 				outputs = self.net(inputs)
+				client_output = outputs.clone().detach().requires_grad_(True)
 				forward_end_time = time.time()
-
 				
-				# msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
-				# self.send_msg(self.sock, msg)
-				# # Wait receiving server gradients
-				# gradients = self.recv_msg(self.sock)[1].to(self.device)
-				# communication_end_time = time.time()
-
-				# server side stuff
-				#inputs, targets = smashed_layers.to(self.device), labels.to(self.device)
-				#self.optimizers[client_ip].zero_grad()
-				outputs_server = self.server_net(outputs)
-				server_forward_end_time = time.time()
-
+				# server forward/backward
+				self.server_optimizer.zero_grad()
+				outputs_server = self.server_net(client_output)
 				loss = self.criterion(outputs_server, targets)
-				error_end_time = time.time()
-
+				server_forward_end_time = time.time()
+				
 				loss.backward()
-				background_end_time = time.time()
-				self.optimizer.step()
-				server_end_time = time.time()
-                # loss.backward()
-				backward_end_time = time.time()
-				self.optimizer.step()
-				optimising_end_time = time.time()
+				self.server_optimizer.step()
+				server_backward_end_time = time.time()
 
-				logger.info('Forward time: ' + str(forward_end_time - forward_time))
-				logger.info('Server forward time: ' + str(server_forward_end_time - forward_end_time))
-				logger.info('Error time: ' + str(error_end_time - server_forward_end_time))
-				logger.info('Backpropagation time - server: ' + str(background_end_time - error_end_time))
-    			logger.info('Optimisation time - server: ' + str(server_end_time - background_end_time))
-				logger.info('Backpropagation time - device: ' + str(backward_end_time - server_end_time))
-
+				#client backward
+				client_grad = client_output.grad.clone().detach()
+				outputs.backward(client_grad)
+				self.device_optimizer.step()
+				device_backward_end_time = time.time()
+				# print("split layer: "+str(self.split_layer) + " forward device: "+ str(forward_end_time - forward_time)+" server forward: "+str(server_forward_end_time - forward_end_time))
+				# print("server backward "+str(server_backward_end_time - server_forward_end_time)+ " device backward "+ str(device_backward_end_time - server_backward_end_time))
 
 				break
 
-		e_time_total = time.time()
-		logger.info('Total time: ' + str(e_time_total - s_time_total))
+		forward_device = forward_end_time - forward_time
+		forward_server = server_forward_end_time - forward_end_time
+		backward_server = server_backward_end_time - server_forward_end_time
+		backward_device = device_backward_end_time - server_backward_end_time
 
-		training_time_pr = (e_time_total - s_time_total) / 1
-		logger.info('training_time_per_iteration: ' + str(training_time_pr))
+		if self.split_layer == (config.model_len -1):
+			forward_device = forward_end_time - forward_time
+			backward_device = device_backward_end_time - forward_end_time
+			forward_server = 0
+			backward_server = 0
 
-		# msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
-		# self.send_msg(self.sock, msg)
 
-		return e_time_total - s_time_total
+		return forward_device, forward_server, backward_server, backward_device
 		
 	def upload(self):
 		msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
@@ -174,17 +144,6 @@ class Client(Communicator):
 model = models.resnet18()
 inputs = torch.randn(5, 3, 224, 224)
 
-
-
-
-
-# with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
-#     with record_function("model_inference"):
-#         model(inputs)
-
-# print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
-
-
 logger.info('Preparing Client')
 client = Client(1, '192.168.5.22', 50000, 'VGG5', 6)
 
@@ -192,7 +151,7 @@ offload = False
 first = True # First initializaiton control
 # first = True # First initializaiton control
 
-client.initialize(3, offload, first, config.LR)
+client.initialize(6, offload, first, config.LR)
 # first = False 
 first = True 
 
@@ -201,38 +160,24 @@ logger.info('Preparing Data.')
 cpu_count = multiprocessing.cpu_count()
 trainloader, classes= utils.get_local_dataloader(1, 0)
 
-#limit the rounds here!!!!!
-# for r in range(config.R):
-# with torch.profiler.profile(
-#     activities=[
-#         torch.profiler.ProfilerActivity.CPU,
-#         torch.profiler.ProfilerActivity.CUDA,
-#     ]
-# ) as p:
-training_time = client.train(trainloader)
-# print(p.key_averages().table(
-#     sort_by="self_cuda_time_total", row_limit=-1))
-# print(p.key_averages().table(sort_by="cpu_time_total", row_limit=-1))
 
+device_forward_splitwise_latency = [0,0,0,0,0,0]
+server_forward_splitwise_latency = [0,0,0,0,0,0]
+server_backward_splitwise_latency = [0,0,0,0,0,0]
+device_backward_splitwise_latency = [0,0,0,0,0,0]
 
-# for r in range(2):
-# 	logger.info('====================================>')
-# 	logger.info('ROUND: {} START'.format(r))
-# 	training_time = client.train(trainloader)
-# 	logger.info('ROUND: {} END'.format(r))
-	
-# 	logger.info('==> Waiting for aggregration')
-# 	#client.upload()
+config.split_layer = 5
+for r in range(config.model_len - 1):
+	forward_device, forward_server, backward_server, backward_device = client.train(trainloader)
+	device_forward_splitwise_latency[config.split_layer] = forward_device
+	server_forward_splitwise_latency[config.split_layer] = forward_server
+	server_backward_splitwise_latency[config.split_layer] = backward_server
+	device_backward_splitwise_latency[config.split_layer] = backward_device
 
-# 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
-# 	s_time_rebuild = time.time()
-# 	if offload:
-# 		config.split_layer = client.recv_msg(client.sock)[1]
+	if r > 49:
+		LR = config.LR * 0.1
+	config.split_layer = r
+	client.reinitialize(r, offload, first, config.LR)
+	# logger.info('==> Reinitialization Finish')
 
-# 	if r > 49:
-# 		LR = config.LR * 0.1
-
-# 	client.reinitialize(config.split_layer[0], offload, first, config.LR)
-# 	e_time_rebuild = time.time()
-# 	logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
-# 	logger.info('==> Reinitialization Finish')
+print(str(device_forward_splitwise_latency)+"\n"+str(server_forward_splitwise_latency)+"\n"+ str(device_backward_splitwise_latency)+ "\n"+str(server_backward_splitwise_latency))
