@@ -99,6 +99,10 @@ class Client(Communicator):
 				client_output = outputs.clone().detach().requires_grad_(True)
 				forward_end_time = time.time()
 				
+				# print(sys.getsizeof(inputs))
+				# print(sys.getsizeof(outputs))
+				# print(sys.getsizeof(client_output))
+
 				# server forward/backward
 				self.server_optimizer.zero_grad()
 				outputs_server = self.server_net(client_output)
@@ -124,7 +128,7 @@ class Client(Communicator):
 		backward_server = server_backward_end_time - server_forward_end_time
 		backward_device = device_backward_end_time - server_backward_end_time
 
-		if self.split_layer == (config.model_len -1):
+		if self.split_layer == 6:
 			forward_device = forward_end_time - forward_time
 			backward_device = device_backward_end_time - forward_end_time
 			forward_server = 0
@@ -139,10 +143,6 @@ class Client(Communicator):
 
 	def reinitialize(self, split_layers, offload, first, LR):
 		self.initialize(split_layers, offload, first, LR)
-
-
-model = models.resnet18()
-inputs = torch.randn(5, 3, 224, 224)
 
 logger.info('Preparing Client')
 client = Client(1, '192.168.5.22', 50000, 'VGG5', 6)
@@ -167,17 +167,20 @@ server_backward_splitwise_latency = [0,0,0,0,0,0]
 device_backward_splitwise_latency = [0,0,0,0,0,0]
 
 config.split_layer = 5
-for r in range(config.model_len - 1):
+for r in range(config.model_len - 1, 0, -1):
+	print(r)
+	print(config.split_layer)
 	forward_device, forward_server, backward_server, backward_device = client.train(trainloader)
-	device_forward_splitwise_latency[config.split_layer] = forward_device
-	server_forward_splitwise_latency[config.split_layer] = forward_server
-	server_backward_splitwise_latency[config.split_layer] = backward_server
-	device_backward_splitwise_latency[config.split_layer] = backward_device
+	device_forward_splitwise_latency[r -1] = forward_device
+	server_forward_splitwise_latency[r -1] = forward_server
+	server_backward_splitwise_latency[r -1] = backward_server
+	device_backward_splitwise_latency[r -1] = backward_device
 
 	if r > 49:
 		LR = config.LR * 0.1
 	config.split_layer = r
-	client.reinitialize(r, offload, first, config.LR)
+	if r < config.model_len - 1:
+		client.reinitialize(r, offload, first, config.LR)
 	# logger.info('==> Reinitialization Finish')
 
 print(str(device_forward_splitwise_latency)+"\n"+str(server_forward_splitwise_latency)+"\n"+ str(device_backward_splitwise_latency)+ "\n"+str(server_backward_splitwise_latency))
