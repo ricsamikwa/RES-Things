@@ -7,8 +7,10 @@ import torchvision
 import torchvision.transforms as transforms
 import threading
 import tqdm
+import time
 import random
 import numpy as np
+# from ARES_optimisation import BenchClient
 
 import logging
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -200,13 +202,23 @@ class Sever(Communicator):
 		return labels
 
 	# The function to change more
-	def adaptive_offload(self):
-		# action = agent.exploit(state)
-		# action = self.expand_actions(action, config.CLIENTS_LIST)
+	def adaptive_offload(self, bandwidth):
+		
+		#+++++++++++++++++++++++++++++++++
+		# logger.info('Preparing Device')
+		# benchClient = BenchClient(1, '192.168.1.100', 50000, 'VGG5', 6)
+
+		# s_time_rebuild = time.time()
+		# offloading_strategy = benchClient.ARES_optimiser(0.4) + 1
+		# e_time_rebuild = time.time()
+		# print("Current offloading strategy: "+ str(offloading_strategy))
+		# print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))
+		# config.split_layer = [offloading_strategy]
+		#+++++++++++++++++++++++++++++++++
 
 		# 1 3 5 splitting same hardware configuration
 		# config.split_layer = [1, 3, 4]
-		config.split_layer = [4]
+		config.split_layer = [1]
 		logger.info('Next Round OPs: ' + str(config.split_layer))
 
 		msg = ['SPLIT_LAYERS',config.split_layer]

@@ -65,7 +65,7 @@ for r in range(config.R):
 		# ADAPT SPLIT LAYERS HERE!
 		# split_layers = [2]
 		# config.split_layer = split_layers
-		split_layers = sever.adaptive_offload()
+		split_layers = sever.adaptive_offload(bandwidth)
 		splitlist = ''.join(str(e) for e in split_layers)
 		filename = 'ARES_split_'+splitlist+'_config_3.csv'
 	else:

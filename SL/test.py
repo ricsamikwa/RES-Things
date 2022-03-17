@@ -118,8 +118,6 @@ class Client(Communicator):
 				outputs.backward(client_grad)
 				self.device_optimizer.step()
 				device_backward_end_time = time.time()
-				# print("split layer: "+str(self.split_layer) + " forward device: "+ str(forward_end_time - forward_time)+" server forward: "+str(server_forward_end_time - forward_end_time))
-				# print("server backward "+str(server_backward_end_time - server_forward_end_time)+ " device backward "+ str(device_backward_end_time - server_backward_end_time))
 
 				break
 

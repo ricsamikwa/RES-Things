@@ -126,7 +126,12 @@ class Client(Communicator):
 				outputs = self.net(inputs)
 
 				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
+				# temp stuff
+				print(sys.getsizeof(msg))
+				s_time_tota_temp = time.time()
 				self.send_msg(self.sock, msg)
+				e_time_tota_temp = time.time()
+				print(e_time_tota_temp - s_time_tota_temp)
 
 				# logger.info('waiting to receive gradients')
 

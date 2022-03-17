@@ -19,9 +19,9 @@ import config
 import utils
 from Communicator import *
 import multiprocessing
-from torchsummary import summary
+# from torchsummary import summary
 import torchvision.models as models
-from torch.profiler import profile, record_function, ProfilerActivity
+# from torch.profiler import profile, record_function, ProfilerActivity
 
 
 
@@ -33,20 +33,20 @@ logger = logging.getLogger(__name__)
 np.random.seed(0)
 torch.manual_seed(0)
 
-class Client(Communicator):
+class BenchClient(Communicator):
 	def __init__(self, index, ip_address, datalen, model_name, split_layer):
-		super(Client, self).__init__(index, ip_address)
+		super(BenchClient, self).__init__(index, ip_address)
 		self.datalen = datalen
 		self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 		self.model_name = model_name
 		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
-
+		# print(sys.getsizeof(self.uninet))
 		# logger.info('Connecting to Server.')
 		# self.sock.connect((server_addr,server_port))
 
 	def initialize(self, split_layer, offload, first, LR):
 		if offload or first:
-			self.split_layer = split_layer
+			self.split_layer = split_layer[0]
 
 			logger.debug('Building Model.')
 			self.net = utils.get_model('Client', self.model_name, self.split_layer, self.device, config.model_cfg)
@@ -99,20 +99,20 @@ class Client(Communicator):
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
 				
-				# client forward
+				# BenchClient forward
 				forward_time = time.time()	
 				self.device_optimizer.zero_grad()
 				outputs = self.net(inputs)
-				client_output = outputs.clone().detach().requires_grad_(True)
+				BenchClient_output = outputs.clone().detach().requires_grad_(True)
 				forward_end_time = time.time()
 				
 				# print(sys.getsizeof(inputs))
 				# print(sys.getsizeof(outputs))
-				# print(sys.getsizeof(client_output))
+				# print(sys.getsizeof(BenchClient_output))
 
 				# server forward/backward
 				self.server_optimizer.zero_grad()
-				outputs_server = self.server_net(client_output)
+				outputs_server = self.server_net(BenchClient_output)
 				loss = self.criterion(outputs_server, targets)
 				server_forward_end_time = time.time()
 				
@@ -120,9 +120,9 @@ class Client(Communicator):
 				self.server_optimizer.step()
 				server_backward_end_time = time.time()
 
-				#client backward
-				client_grad = client_output.grad.clone().detach()
-				outputs.backward(client_grad)
+				#BenchClient backward
+				BenchClient_grad = BenchClient_output.grad.clone().detach()
+				outputs.backward(BenchClient_grad)
 				self.device_optimizer.step()
 				device_backward_end_time = time.time()
 				# print("split layer: "+str(self.split_layer) + " forward device: "+ str(forward_end_time - forward_time)+" server forward: "+str(server_forward_end_time - forward_end_time))
@@ -135,6 +135,7 @@ class Client(Communicator):
 		backward_server = server_backward_end_time - server_forward_end_time
 		backward_device = device_backward_end_time - server_backward_end_time
 
+		# print(self.split_layer)
 		if self.split_layer == 6:
 			forward_device = forward_end_time - forward_time
 			backward_device = device_backward_end_time - forward_end_time
@@ -145,7 +146,7 @@ class Client(Communicator):
 		return forward_device, forward_server, backward_server, backward_device
 		
 	def upload(self):
-		msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
+		msg = ['MSG_LOCAL_WEIGHTS_BenchClient_TO_SERVER', self.net.cpu().state_dict()]
 		self.send_msg(self.sock, msg)
 
 	def reinitialize(self, split_layers, offload, first, LR):
@@ -166,9 +167,11 @@ class Client(Communicator):
 #     return error_calc_time
 
 	def transmission_layerwise_time(self, network_throughput):
-		layerwise_data = [5343009, 653343, 912343, 47367, 1876, 6789]
-		layerwise_latency = [element * (1/network_throughput) for element in layerwise_data]
+		layerwise_data = [534309, 653343, 912343, 534309, 534309, 534309]
+		# layerwise_latency = [element * (1/network_throughput) for element in layerwise_data]
+		layerwise_latency = [0.3262598514556885, 0.5824382305145264, 0.13750505447387695, 0.13750505447387695, 0.6942946910858154, 0.10664844512939453]
 
+		# print(layerwise_latency)
 		return layerwise_latency
 
 	def measure_power(self):
@@ -179,11 +182,11 @@ class Client(Communicator):
 
 	def training_time_energy(self):
 		
-		offload = False
+		offload = True
 		first = True # First initializaiton control
 		# first = True # First initializaiton control
 
-		self.initialize(6, offload, first, config.LR)
+		self.initialize([6], offload, first, config.LR)
 		# first = False 
 		first = True 
 		# this has problems on mac
@@ -195,9 +198,13 @@ class Client(Communicator):
 		server_backward_splitwise_latency = [0,0,0,0,0,0]
 		device_backward_splitwise_latency = [0,0,0,0,0,0]
 
-		config.split_layer = 5
+		# config.split_layer = 6
 		for r in range(config.model_len - 1, 0, -1):
-			
+			config.split_layer = r
+			if r < config.model_len - 1:
+				self.reinitialize([r], offload, first, config.LR)
+
+			# print(config.split_layer)
 			forward_device, forward_server, backward_server, backward_device = self.train(trainloader)
 			device_forward_splitwise_latency[r -1] = forward_device
 			server_forward_splitwise_latency[r -1] = forward_server
@@ -206,28 +213,38 @@ class Client(Communicator):
 
 			if r > 49:
 				LR = config.LR * 0.1
-			config.split_layer = r
-			if r < config.model_len - 1:
-				self.reinitialize(r, offload, first, config.LR)
+			
+			
 		
 		print(str(device_forward_splitwise_latency)+"\n"+str(server_forward_splitwise_latency)+"\n"+ str(device_backward_splitwise_latency)+ "\n"+str(server_backward_splitwise_latency))
+
+		# nano 8 - MAXN
+		device_forward_splitwise_latency_temp = [0.0023119449615478516, 0.003648519515991211, 0.003835916519165039, 0.006833791732788086, 0.021893978118896484, 9.588886499404907]
+		device_backward_splitwise_latency_temp = [0.003223419189453125, 0.030652284622192383, 0.00543975830078125, 0.0074024200439453125, 0.007901191711425781, 1.5804917812347412]
+
+		# # pi B 
+		# device_forward_splitwise_latency_temp = [0.3574063777923584, 0.8774583339691162, 1.0404078960418701, 1.163121223449707, 1.2735788822174072, 1.314896583557129]
+		# device_backward_splitwise_latency_temp = [0.536374568939209, 1.4896900653839111, 1.4612138271331787, 1.8985178470611572, 1.9876246452331543, 1.7998700141906738]
+
 		
 		trans_layerwise_time = self.transmission_layerwise_time(2000000)
 		
-		training_computation_time_array = []
+		device_training_computation_time_array = []
+		server_training_computation_time_array = []
 		total_training_time_array = []
 
-		training_computation_time_array = [(device_forward_splitwise_latency[i] + server_forward_splitwise_latency[i] + server_backward_splitwise_latency[i] + device_backward_splitwise_latency[i]) for i in range(len(device_forward_splitwise_latency))]
-		total_training_time_array = [(training_computation_time_array[p] + trans_layerwise_time[p]) for p in range(len(device_forward_splitwise_latency))]
+		device_training_computation_time_array = [(device_forward_splitwise_latency_temp[i] + device_backward_splitwise_latency_temp[i]) for i in range(len(device_forward_splitwise_latency))]
+		server_training_computation_time_array = [(server_forward_splitwise_latency[i] + server_backward_splitwise_latency[i]) for i in range(len(device_forward_splitwise_latency))]
+		total_training_time_array = [(device_training_computation_time_array[p] + server_training_computation_time_array[p] + trans_layerwise_time[p]) for p in range(len(device_forward_splitwise_latency))]
 
 		computation_power, transmission_power = self.measure_power()
 
-		layerwise_computation_energy = [element * computation_power for element in training_computation_time_array]
-		layerwise_transmission_energy = [element * transmission_power for element in trans_layerwise_time]
+		splitwise_computation_energy = [element * computation_power for element in device_training_computation_time_array]
+		layerwise_transmission_energy = [element * 2 * transmission_power for element in trans_layerwise_time]
 
 		total_energy_per_iter_array = []
 
-		total_energy_per_iter_array = [(2 * sum(layerwise_computation_energy[0:i]) + layerwise_transmission_energy[i]) for i in range(len(layerwise_computation_energy))]
+		total_energy_per_iter_array = [(splitwise_computation_energy[i] + layerwise_transmission_energy[i]) for i in range(len(splitwise_computation_energy))]
 
 		return total_training_time_array, total_energy_per_iter_array
 
@@ -246,8 +263,8 @@ class Client(Communicator):
 		print(normal_training_time_array)
 		print(normal_energy_per_iter_array)
 		print("==============================")
-		print("training time argmin: "+ str(argmin(normal_training_time_array)))
-		print("energy consump argmin: "+ str(argmin(normal_energy_per_iter_array)))
+		print("training time argmin: "+ str(argmin(normal_training_time_array) + 1))
+		print("energy consump argmin: "+ str(argmin(normal_energy_per_iter_array) +1))
 		print("==============================")
 
 		#scaling
@@ -266,10 +283,10 @@ class Client(Communicator):
 
 
 logger.info('Preparing Device')
-client = Client(1, '192.168.1.100', 50000, 'VGG5', 6)
+benchClient = BenchClient(1, '192.168.1.100', 50000, 'VGG5', 6)
 
 s_time_rebuild = time.time()
-offloading_strategy = client.ARES_optimiser(0.4)
+offloading_strategy = benchClient.ARES_optimiser(0.4) + 1
 e_time_rebuild = time.time()
 print("Current offloading strategy: "+ str(offloading_strategy))
 print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))
