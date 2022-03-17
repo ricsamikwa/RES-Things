@@ -200,7 +200,7 @@ class BenchClient(Communicator):
 
 		# config.split_layer = 6
 		for r in range(config.model_len - 1, 0, -1):
-			config.split_layer = r
+			# config.split_layer = r
 			if r < config.model_len - 1:
 				self.reinitialize([r], offload, first, config.LR)
 
