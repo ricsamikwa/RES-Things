@@ -171,8 +171,13 @@ class BenchClient(Communicator):
 		# layerwise_latency = [element * (1/network_throughput) for element in layerwise_data]
 		layerwise_latency = [0.3262598514556885, 0.5824382305145264, 0.13750505447387695, 0.13750505447387695, 0.6942946910858154, 0.10664844512939453]
 
+		# 40 Mbit/s 
+		# layerwise_latency = [0.5517283058166504, 0.13045337677001953, 0.1769771146774292, 0.18822888851165773, 0.001455254554748535, 0.0]
+		layerwise_latency_backpropagation = [1.569196753501892, 0.6807714366912841, 0.3989624071121216, 0.3490042543411255, 0.09093882560729981, 0.0]
+
+
 		# print(layerwise_latency)
-		return layerwise_latency
+		return layerwise_latency, layerwise_latency_backpropagation
 
 	def measure_power(self):
 		computation_power = 5400
@@ -218,16 +223,16 @@ class BenchClient(Communicator):
 		
 		print(str(device_forward_splitwise_latency)+"\n"+str(server_forward_splitwise_latency)+"\n"+ str(device_backward_splitwise_latency)+ "\n"+str(server_backward_splitwise_latency))
 
-		# nano 8 - MAXN
+		# # nano 8 - MAXN
 		device_forward_splitwise_latency_temp = [0.0023119449615478516, 0.003648519515991211, 0.003835916519165039, 0.006833791732788086, 0.021893978118896484, 9.588886499404907]
 		device_backward_splitwise_latency_temp = [0.003223419189453125, 0.030652284622192383, 0.00543975830078125, 0.0074024200439453125, 0.007901191711425781, 1.5804917812347412]
 
-		# # pi B 
+		# pi B 
 		# device_forward_splitwise_latency_temp = [0.3574063777923584, 0.8774583339691162, 1.0404078960418701, 1.163121223449707, 1.2735788822174072, 1.314896583557129]
 		# device_backward_splitwise_latency_temp = [0.536374568939209, 1.4896900653839111, 1.4612138271331787, 1.8985178470611572, 1.9876246452331543, 1.7998700141906738]
 
 		
-		trans_layerwise_time = self.transmission_layerwise_time(2000000)
+		trans_layerwise_time, layerwise_latency_backpropagation = self.transmission_layerwise_time(2000000)
 		
 		device_training_computation_time_array = []
 		server_training_computation_time_array = []
@@ -240,7 +245,7 @@ class BenchClient(Communicator):
 		computation_power, transmission_power = self.measure_power()
 
 		splitwise_computation_energy = [element * computation_power for element in device_training_computation_time_array]
-		layerwise_transmission_energy = [element * 2 * transmission_power for element in trans_layerwise_time]
+		layerwise_transmission_energy = [element * 2 * transmission_power for element in trans_layerwise_time] 
 
 		total_energy_per_iter_array = []
 
