@@ -205,20 +205,20 @@ class Sever(Communicator):
 	def adaptive_offload(self, bandwidth):
 		
 		#+++++++++++++++++++++++++++++++++
-		logger.info('Preparing Device')
-		benchClient = BenchClient(1, '192.168.1.100', 50000, 'VGG5', 6)
+		# logger.info('Preparing Device')
+		# benchClient = BenchClient(1, '192.168.1.100', 50000, 'VGG5', 6)
 
-		s_time_rebuild = time.time()
-		offloading_strategy = benchClient.ARES_optimiser(0.4) + 1
-		e_time_rebuild = time.time()
-		print("Current offloading strategy: "+ str(offloading_strategy))
-		print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))
-		config.split_layer = [offloading_strategy]
+		# s_time_rebuild = time.time()
+		# offloading_strategy = benchClient.ARES_optimiser(0.4) + 1
+		# e_time_rebuild = time.time()
+		# print("Current offloading strategy: "+ str(offloading_strategy))
+		# print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))
+		# config.split_layer = [offloading_strategy]
 		#+++++++++++++++++++++++++++++++++
 
 		# 1 3 5 splitting same hardware configuration
 		# config.split_layer = [1, 3, 4]
-		# config.split_layer = [1]
+		# config.split_layer = [5]
 		logger.info('Next Round OPs: ' + str(config.split_layer))
 
 		msg = ['SPLIT_LAYERS',config.split_layer]

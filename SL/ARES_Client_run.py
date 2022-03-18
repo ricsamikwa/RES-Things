@@ -87,7 +87,7 @@ def training_thread(LR):
 		logger.info('ROUND: {} START'.format(r))
 
 		#training time per round
-		training_time,training_time_pr, network_speed = client.train(trainloader, hostname)
+		training_time,training_time_pr, network_speed, average_time = client.train(trainloader, hostname)
 
 		if offload:
 			filename =''+ hostname+'-'+str(config.split_layer[index])+'_config_3.csv'
@@ -108,7 +108,7 @@ def training_thread(LR):
 
 		with open(config.home + '/results/' + filename,'a', newline='') as file:
 			writer = csv.writer(file)
-			writer.writerow([network_speed,training_time_pr, training_time])
+			writer.writerow([network_speed,training_time_pr, training_time, average_time])
 
 		logger.info('ROUND: {} END'.format(r))
 		

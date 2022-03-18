@@ -61,6 +61,10 @@ for r in range(config.R):
 	test_acc = sever.test(r)
 	# res['test_acc_record'].append(test_acc)
 
+	#temp item
+	if r % 2 == 0:
+		config.split_layer[0] = config.split_layer[0] - 1
+
 	if offload:
 		# ADAPT SPLIT LAYERS HERE!
 		# split_layers = [2]
@@ -81,6 +85,7 @@ for r in range(config.R):
 	logger.info('==> Round Training Time: {:}'.format(trianing_time))
 
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
+	
 	
 
 	if r > 49:

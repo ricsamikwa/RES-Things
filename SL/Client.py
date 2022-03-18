@@ -105,6 +105,7 @@ class Client(Communicator):
 		time_training_c = 0
 		self.net.to(self.device)
 		self.net.train()
+		time_tota_temp = 0
 
 		iteration_count = 0
 
@@ -127,16 +128,18 @@ class Client(Communicator):
 
 				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
 				# temp stuff
-				print(sys.getsizeof(msg))
-				s_time_tota_temp = time.time()
+				# print(sys.getsizeof(msg))
+				
 				self.send_msg(self.sock, msg)
-				e_time_tota_temp = time.time()
-				print(e_time_tota_temp - s_time_tota_temp)
+				# print(e_time_tota_temp - s_time_tota_temp)
 
 				# logger.info('waiting to receive gradients')
 
 				# Wait receiving server gradients
+				s_time_tota_temp = time.time()
 				gradients = self.recv_msg(self.sock)[1].to(self.device)
+				time_tota_temp += time.time() - s_time_tota_temp
+
 
 				outputs.backward(gradients)
 				self.optimizer.step()
@@ -152,7 +155,9 @@ class Client(Communicator):
 
 
 		training_time_pr = (e_time_total - s_time_total) /iteration
+		average_time = time_tota_temp /iteration
 		logger.info('training_time_per_iteration: ' + str(training_time_pr))
+		logger.info('average_receiving_time: ' + str(average_time))
 
 		msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
 		self.send_msg(self.sock, msg)
@@ -162,7 +167,7 @@ class Client(Communicator):
 			t1.join()
 			print('thread killed')
 
-		return e_time_total - s_time_total, training_time_pr, network_speed
+		return e_time_total - s_time_total, training_time_pr, network_speed, average_time
 		
 	def upload(self):
 		msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
