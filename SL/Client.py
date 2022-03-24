@@ -57,7 +57,7 @@ class Client(Communicator):
 	def power_monitor_thread(self, stop):
 		power = 0
 		# power input
-		filename =''+ hostname+'-'+str(config.split_layer[index])+'_power_config_3.csv'
+		filename =''+ hostname+'-'+str(config.split_layer[index])+'_power_config_3_temp.csv'
 		time.sleep(0.4)
 		# while True:
 		for x in range(10):
@@ -136,9 +136,9 @@ class Client(Communicator):
 				# logger.info('waiting to receive gradients')
 
 				# Wait receiving server gradients
-				s_time_tota_temp = time.time()
+				# s_time_tota_temp = time.time()
 				gradients = self.recv_msg(self.sock)[1].to(self.device)
-				time_tota_temp += time.time() - s_time_tota_temp
+				# time_tota_temp += time.time() - s_time_tota_temp
 
 
 				outputs.backward(gradients)
@@ -157,7 +157,7 @@ class Client(Communicator):
 		training_time_pr = (e_time_total - s_time_total) /iteration
 		average_time = time_tota_temp /iteration
 		logger.info('training_time_per_iteration: ' + str(training_time_pr))
-		logger.info('average_receiving_time: ' + str(average_time))
+		# logger.info('average_receiving_time: ' + str(average_time))
 
 		msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
 		self.send_msg(self.sock, msg)

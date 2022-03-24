@@ -71,10 +71,10 @@ for r in range(config.R):
 		# config.split_layer = split_layers
 		split_layers = sever.adaptive_offload(bandwidth)
 		splitlist = ''.join(str(e) for e in split_layers)
-		filename = 'ARES_split_'+splitlist+'_config_3.csv'
+		filename = 'ARES_split_'+splitlist+'_config_3_temp.csv'
 	else:
 		split_layers = config.split_layer
-		filename = 'classic_local_config_3.csv'
+		filename = 'classic_local_config_3_temp.csv'
 
 
 	with open(config.home +'/results/'+filename,'a', newline='') as file:

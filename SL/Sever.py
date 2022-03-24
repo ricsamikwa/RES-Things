@@ -218,7 +218,7 @@ class Sever(Communicator):
 
 		# 1 3 5 splitting same hardware configuration
 		# config.split_layer = [1, 3, 4]
-		# config.split_layer = [5]
+		config.split_layer = [5]
 		logger.info('Next Round OPs: ' + str(config.split_layer))
 
 		msg = ['SPLIT_LAYERS',config.split_layer]
