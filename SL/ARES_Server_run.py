@@ -62,8 +62,11 @@ for r in range(config.R):
 	# res['test_acc_record'].append(test_acc)
 
 	#temp item
-	if r % 2 == 0:
-		config.split_layer[0] = config.split_layer[0] - 1
+	# if r % 2 == 0:
+	config.split_layer[0] = config.split_layer[0] - 1
+	if config.split_layer[0] == 0:
+		break
+    #++++++++++++++++++++++++++++++++++++++
 
 	if offload:
 		# ADAPT SPLIT LAYERS HERE!

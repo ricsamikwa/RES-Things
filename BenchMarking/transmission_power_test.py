@@ -15,7 +15,7 @@ for x in range(1000):
   client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
   # SERVER - RECEIVING
-  client.connect(('192.168.1.38', 8080))
+  client.connect(('192.168.1.42', 8080))
 
   # DEVICE - RECEIVING
   # client.connect(('192.168.1.43', 8080))

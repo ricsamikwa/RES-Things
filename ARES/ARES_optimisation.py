@@ -180,6 +180,16 @@ class BenchClient(Communicator):
 		return layerwise_latency, layerwise_latency_backpropagation
 
 	def measure_power(self):
+
+		# MAXN comp: 7253.297700323392
+		# MAXN trans: 2319.590057210495
+		# MAXN rec: 2260.3782324677427
+		# 5W comp: 4204.6259168704155
+		# 5W trans: 1917.0524958555905
+		# 5W rec: 1912.4423741971912
+		# CUSTOM comp: 2396.2112226277372
+		# CUSTOM trans: 1754.1256388811448
+		# CUSTOM rec: 1755.296656187482
 		computation_power = 5400
 		transmission_power = 3100
 

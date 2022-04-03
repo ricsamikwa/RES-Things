@@ -93,12 +93,12 @@ class Client(Communicator):
 		self.send_msg(self.sock, msg)
 
 
-		print(hostname[0:3])
-		if hostname[0:4] == 'nano':
-			# print('this is a nano')
-			stop_threads = False
-			t1 = Thread(target=self.power_monitor_thread, args =(lambda : stop_threads,))
-			t1.start()
+		# print(hostname[0:3])
+		# if hostname[0:4] == 'nano':
+		# 	# print('this is a nano')
+		# 	stop_threads = False
+		# 	t1 = Thread(target=self.power_monitor_thread, args =(lambda : stop_threads,))
+		# 	t1.start()
    
 		# Training start
 		s_time_total = time.time()
@@ -162,10 +162,10 @@ class Client(Communicator):
 		msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
 		self.send_msg(self.sock, msg)
   
-		if hostname[0:3] == 'nano':
-			stop_threads = True
-			t1.join()
-			print('thread killed')
+		# if hostname[0:3] == 'nano':
+		# 	stop_threads = True
+		# 	t1.join()
+		# 	print('thread killed')
 
 		return e_time_total - s_time_total, training_time_pr, network_speed, average_time
 		
