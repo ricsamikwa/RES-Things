@@ -84,7 +84,9 @@ class BenchClient(Communicator):
 				self.device_optimizer.zero_grad()
 				# new random stuff
 				forward_time = time.time()	
-				outputs = self.net(inputs)				
+				outputs = self.net(inputs)	
+				print(inputs.shape)
+				print(outputs.shape)
 				loss = self.criterion(outputs, targets)
 				forward_end_time = time.time()
 
@@ -106,22 +108,28 @@ class BenchClient(Communicator):
 				BenchClient_output = outputs.clone().detach().requires_grad_(True)
 				forward_end_time = time.time()
 				
-				# print(sys.getsizeof(inputs))
-				# print(sys.getsizeof(outputs))
-				# print(sys.getsizeof(BenchClient_output))
+				print(inputs.shape)
+				print(BenchClient_output.shape)
+
 
 				# server forward/backward
 				self.server_optimizer.zero_grad()
 				outputs_server = self.server_net(BenchClient_output)
+				print(outputs_server.shape)
+
 				loss = self.criterion(outputs_server, targets)
 				server_forward_end_time = time.time()
-				
+				# print("feature maps: "+str(sys.getsizeof(BenchClient_output)))
+
 				loss.backward()
 				self.server_optimizer.step()
 				server_backward_end_time = time.time()
 
 				#BenchClient backward
 				BenchClient_grad = BenchClient_output.grad.clone().detach()
+				print(BenchClient_grad.shape)
+				# print("gradients: "+str(sys.getsizeof(BenchClient_grad)))
+
 				outputs.backward(BenchClient_grad)
 				self.device_optimizer.step()
 				device_backward_end_time = time.time()
@@ -167,17 +175,29 @@ class BenchClient(Communicator):
 #     return error_calc_time
 
 	def transmission_layerwise_time(self, network_throughput):
-		layerwise_data = [534309, 653343, 912343, 534309, 534309, 534309]
-		# layerwise_latency = [element * (1/network_throughput) for element in layerwise_data]
-		layerwise_latency = [0.3262598514556885, 0.5824382305145264, 0.13750505447387695, 0.13750505447387695, 0.6942946910858154, 0.10664844512939453]
 
+		# (Type, in_channels, out_channels, kernel_size, out_size(c_out*h*w), flops(c_out*h*w*k*k*c_in))
+		# 'VGG5' : [('C', 3, 32, 3, 32*32*32, 32*32*32*3*3*3), ('M', 32, 32, 2, 32*16*16, 0), 
+		# ('C', 32, 64, 3, 64*16*16, 64*16*16*3*3*32), ('M', 64, 64, 2, 64*8*8, 0), 
+		# ('C', 64, 64, 3, 64*8*8, 64*8*8*3*3*64), 
+		# ('D', 8*8*64, 128, 1, 64, 128*8*8*64), 
+		# ('D', 128, 10, 1, 10, 128*10)]
+
+		# now we multiply everything by 8 * 100
+		forward_layerwise_data = [32*32*32*8*100, 32*16*16*8*100, 64*16*16*8*100, 64*8*8*8*100, 64*8*8*8*100, 64*8*100, 10*8*100]
+		backward_layerwise_data = [32*32*32*8*100, 32*16*16*8*100, 64*16*16*8*100, 64*8*8*8*100, 64*8*8*8*100, 64*8*100, 10*8*100]
+
+		forward_layerwise_latency = [element * (1/(network_throughput * 1000000)) for element in forward_layerwise_data]
+
+		print(forward_layerwise_latency)
+		const_forward_layerwise_latency = [0.3262598514556885, 0.5824382305145264, 0.13750505447387695, 0.13750505447387695, 0.6942946910858154, 0.10664844512939453]
+		print(const_forward_layerwise_latency)
 		# 40 Mbit/s 
-		# layerwise_latency = [0.5517283058166504, 0.13045337677001953, 0.1769771146774292, 0.18822888851165773, 0.001455254554748535, 0.0]
-		layerwise_latency_backpropagation = [1.569196753501892, 0.6807714366912841, 0.3989624071121216, 0.3490042543411255, 0.09093882560729981, 0.0]
-
+		backward_layerwise_latency = [element * (1/(network_throughput * 1000000)) for element in backward_layerwise_data]
+		# const_backward_layerwise_latency = [1.569196753501892, 0.6807714366912841, 0.3989624071121216, 0.3490042543411255, 0.09093882560729981, 0.0]
 
 		# print(layerwise_latency)
-		return layerwise_latency, layerwise_latency_backpropagation
+		return forward_layerwise_latency, backward_layerwise_latency
 
 	def measure_power(self):
 
@@ -190,12 +210,13 @@ class BenchClient(Communicator):
 		# CUSTOM comp: 2396.2112226277372
 		# CUSTOM trans: 1754.1256388811448
 		# CUSTOM rec: 1755.296656187482
-		computation_power = 5400
-		transmission_power = 3100
+		computation_power = 6400
+		transmission_power = 3800
+		receiving_power = 1100
 
-		return computation_power, transmission_power
+		return computation_power, transmission_power, receiving_power
 
-	def training_time_energy(self):
+	def training_time_energy(self, bandwidth):
 		
 		offload = True
 		first = True # First initializaiton control
@@ -219,7 +240,7 @@ class BenchClient(Communicator):
 			if r < config.model_len - 1:
 				self.reinitialize([r], offload, first, config.LR)
 
-			# print(config.split_layer)
+			print("split point: "+str(r))
 			forward_device, forward_server, backward_server, backward_device = self.train(trainloader)
 			device_forward_splitwise_latency[r -1] = forward_device
 			server_forward_splitwise_latency[r -1] = forward_server
@@ -231,18 +252,18 @@ class BenchClient(Communicator):
 			
 			
 		
-		print(str(device_forward_splitwise_latency)+"\n"+str(server_forward_splitwise_latency)+"\n"+ str(device_backward_splitwise_latency)+ "\n"+str(server_backward_splitwise_latency))
+		# print(str(device_forward_splitwise_latency)+"\n"+str(server_forward_splitwise_latency)+"\n"+ str(device_backward_splitwise_latency)+ "\n"+str(server_backward_splitwise_latency))
 
 		# # nano 8 - MAXN
-		device_forward_splitwise_latency_temp = [0.0023119449615478516, 0.003648519515991211, 0.003835916519165039, 0.006833791732788086, 0.021893978118896484, 9.588886499404907]
-		device_backward_splitwise_latency_temp = [0.003223419189453125, 0.030652284622192383, 0.00543975830078125, 0.0074024200439453125, 0.007901191711425781, 1.5804917812347412]
+		# device_forward_splitwise_latency_temp = [0.0023119449615478516, 0.003648519515991211, 0.003835916519165039, 0.006833791732788086, 0.021893978118896484, 9.588886499404907]
+		# device_backward_splitwise_latency_temp = [0.003223419189453125, 0.030652284622192383, 0.00543975830078125, 0.0074024200439453125, 0.007901191711425781, 1.5804917812347412]
 
 		# pi B 
-		# device_forward_splitwise_latency_temp = [0.3574063777923584, 0.8774583339691162, 1.0404078960418701, 1.163121223449707, 1.2735788822174072, 1.314896583557129]
-		# device_backward_splitwise_latency_temp = [0.536374568939209, 1.4896900653839111, 1.4612138271331787, 1.8985178470611572, 1.9876246452331543, 1.7998700141906738]
+		device_forward_splitwise_latency_temp = [0.3574063777923584, 0.8774583339691162, 1.0404078960418701, 1.163121223449707, 1.2735788822174072, 1.314896583557129]
+		device_backward_splitwise_latency_temp = [0.536374568939209, 1.4896900653839111, 1.4612138271331787, 1.8985178470611572, 1.9876246452331543, 1.7998700141906738]
 
 		
-		trans_layerwise_time, layerwise_latency_backpropagation = self.transmission_layerwise_time(2000000)
+		transmision_layerwise_latency, receiving_layerwise_latency = self.transmission_layerwise_time(bandwidth)
 		
 		device_training_computation_time_array = []
 		server_training_computation_time_array = []
@@ -250,22 +271,24 @@ class BenchClient(Communicator):
 
 		device_training_computation_time_array = [(device_forward_splitwise_latency_temp[i] + device_backward_splitwise_latency_temp[i]) for i in range(len(device_forward_splitwise_latency))]
 		server_training_computation_time_array = [(server_forward_splitwise_latency[i] + server_backward_splitwise_latency[i]) for i in range(len(device_forward_splitwise_latency))]
-		total_training_time_array = [(device_training_computation_time_array[p] + server_training_computation_time_array[p] + trans_layerwise_time[p]) for p in range(len(device_forward_splitwise_latency))]
+		total_training_time_array = [(device_training_computation_time_array[p] + server_training_computation_time_array[p] + transmision_layerwise_latency[p] + receiving_layerwise_latency[p]) for p in range(len(device_forward_splitwise_latency))]
 
-		computation_power, transmission_power = self.measure_power()
+		computation_power, transmission_power, receiving_power = self.measure_power()
 
 		splitwise_computation_energy = [element * computation_power for element in device_training_computation_time_array]
-		layerwise_transmission_energy = [element * 2 * transmission_power for element in trans_layerwise_time] 
+		layerwise_transmission_energy = [element * transmission_power for element in transmision_layerwise_latency] 
+		layerwise_receiving_energy = [element * receiving_power for element in receiving_layerwise_latency] 
+
 
 		total_energy_per_iter_array = []
 
-		total_energy_per_iter_array = [(splitwise_computation_energy[i] + layerwise_transmission_energy[i]) for i in range(len(splitwise_computation_energy))]
+		total_energy_per_iter_array = [(splitwise_computation_energy[i] + layerwise_transmission_energy[i] + layerwise_receiving_energy[i]) for i in range(len(splitwise_computation_energy))]
 
 		return total_training_time_array, total_energy_per_iter_array
 
-	def ARES_optimiser(self, alpha):
+	def ARES_optimiser(self, alpha, bandwidth):
 		print("alpha: " + str(alpha))
-		total_training_time_array, total_energy_per_iter_array = self.training_time_energy()
+		total_training_time_array, total_energy_per_iter_array = self.training_time_energy(bandwidth)
 		
 		#normalisation
 		norm = np.linalg.norm(total_training_time_array)
@@ -299,9 +322,10 @@ class BenchClient(Communicator):
 
 logger.info('Preparing Device')
 benchClient = BenchClient(1, '192.168.1.100', 50000, 'VGG5', 6)
+temp_bandwidth = 20
 
 s_time_rebuild = time.time()
-offloading_strategy = benchClient.ARES_optimiser(0.4) + 1
+offloading_strategy = benchClient.ARES_optimiser(0.4, temp_bandwidth) + 1
 e_time_rebuild = time.time()
 print("Current offloading strategy: "+ str(offloading_strategy))
 print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))

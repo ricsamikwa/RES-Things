@@ -61,11 +61,11 @@ for r in range(config.R):
 	test_acc = sever.test(r)
 	# res['test_acc_record'].append(test_acc)
 
-	#temp item
+	#temp item - WALK
 	# if r % 2 == 0:
-	config.split_layer[0] = config.split_layer[0] - 1
-	if config.split_layer[0] == 0:
-		break
+	# config.split_layer[0] = config.split_layer[0] - 1
+	# if config.split_layer[0] == 0:
+	# 	break
     #++++++++++++++++++++++++++++++++++++++
 
 	if offload:

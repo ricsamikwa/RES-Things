@@ -23,18 +23,18 @@ G = 3 # Number of groups
 # The initial one
 K = 1 # Number of devices
 
-HOST2IP = {'nano6':'192.168.1.42' }
-CLIENTS_CONFIG= {'192.168.1.42':0 }
-CLIENTS_LIST= ['192.168.1.42'] 
+# HOST2IP = {'nano6':'192.168.1.42' }
+# CLIENTS_CONFIG= {'192.168.1.42':0 }
+# CLIENTS_LIST= ['192.168.1.42'] 
 
 # HOST2IP = {'nano8':'192.168.1.43' }
 # CLIENTS_CONFIG= {'192.168.1.43':0 }
 # CLIENTS_LIST= ['192.168.1.43'] 
 # # Pi only
 
-# HOST2IP = {'raspberrypi':'192.168.1.44' }
-# CLIENTS_CONFIG= {'192.168.1.44':0 }
-# CLIENTS_LIST= ['192.168.1.44'] 
+HOST2IP = {'raspberrypi':'192.168.1.44' }
+CLIENTS_CONFIG= {'192.168.1.44':0 }
+CLIENTS_LIST= ['192.168.1.44'] 
 
 # HOST2IP = {'raspberrypi':'192.168.0.105' }
 # CLIENTS_CONFIG= {'192.168.0.105':0 }
@@ -73,18 +73,18 @@ B = 100 # Batch size
 
 
 # RL training configration
-max_episodes = 100         # max training episodes
-max_timesteps = 100        # max timesteps in one episode
-exploration_times = 20	   # exploration times without std decay
-n_latent_var = 64          # number of variables in hidden layer
-action_std = 0.5           # constant std for action distribution (Multivariate Normal)
-update_timestep = 10       # update policy every n timesteps
-K_epochs = 50              # update policy for K epochs
-eps_clip = 0.2             # clip parameter for PPO
-rl_gamma = 0.9             # discount factor
-rl_b = 100				   # Batchsize
-rl_lr = 0.0003             # parameters for Adam optimizer
-rl_betas = (0.9, 0.999)
+# max_episodes = 100         # max training episodes
+# max_timesteps = 100        # max timesteps in one episode
+# exploration_times = 20	   # exploration times without std decay
+# n_latent_var = 64          # number of variables in hidden layer
+# action_std = 0.5           # constant std for action distribution (Multivariate Normal)
+# update_timestep = 10       # update policy every n timesteps
+# K_epochs = 50              # update policy for K epochs
+# eps_clip = 0.2             # clip parameter for PPO
+# rl_gamma = 0.9             # discount factor
+# rl_b = 100				   # Batchsize
+# rl_lr = 0.0003             # parameters for Adam optimizer
+# rl_betas = (0.9, 0.999)
 iteration = {'192.168.1.33':5, '192.168.1.41':5, '192.168.1.40':10, '192.168.1.42':5, '192.168.1.43':5}  # infer times for each device
 
 random = True

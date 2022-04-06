@@ -206,14 +206,14 @@ class Sever(Communicator):
 		
 		#+++++++++++++++++++++++++++++++++
 		# logger.info('Preparing Device')
-		# benchClient = BenchClient(1, '192.168.1.100', 50000, 'VGG5', 6)
+		benchClient = BenchClient(1, '192.168.1.100', 50000, 'VGG5', 6)
 
-		# s_time_rebuild = time.time()
-		# offloading_strategy = benchClient.ARES_optimiser(0.4) + 1
-		# e_time_rebuild = time.time()
-		# print("Current offloading strategy: "+ str(offloading_strategy))
-		# print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))
-		# config.split_layer = [offloading_strategy]
+		s_time_rebuild = time.time()
+		offloading_strategy = benchClient.ARES_optimiser(0.4, bandwidth[config.CLIENTS_LIST[0]]) + 1
+		e_time_rebuild = time.time()
+		print("Current offloading strategy: "+ str(offloading_strategy))
+		print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))
+		config.split_layer = [offloading_strategy]
 		#+++++++++++++++++++++++++++++++++
 
 		# 1 3 5 splitting same hardware configuration

@@ -81,6 +81,7 @@ class Client(Communicator):
 		# Network speed test
 		network_time_start = time.time()
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
+		# print("message size: "+ str(sys.sizeof(msg)))
 		self.send_msg(self.sock, msg)
 		msg = self.recv_msg(self.sock,'MSG_TEST_NETWORK')[1]
 		network_time_end = time.time()
