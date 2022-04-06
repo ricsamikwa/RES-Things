@@ -23,18 +23,18 @@ G = 3 # Number of groups
 # The initial one
 K = 1 # Number of devices
 
-# HOST2IP = {'nano6':'192.168.1.42' }
-# CLIENTS_CONFIG= {'192.168.1.42':0 }
-# CLIENTS_LIST= ['192.168.1.42'] 
+HOST2IP = {'nano6':'192.168.1.42' }
+CLIENTS_CONFIG= {'192.168.1.42':0 }
+CLIENTS_LIST= ['192.168.1.42'] 
 
 # HOST2IP = {'nano8':'192.168.1.43' }
 # CLIENTS_CONFIG= {'192.168.1.43':0 }
 # CLIENTS_LIST= ['192.168.1.43'] 
 # # Pi only
 
-HOST2IP = {'raspberrypi':'192.168.1.44' }
-CLIENTS_CONFIG= {'192.168.1.44':0 }
-CLIENTS_LIST= ['192.168.1.44'] 
+# HOST2IP = {'raspberrypi':'192.168.1.44' }
+# CLIENTS_CONFIG= {'192.168.1.44':0 }
+# CLIENTS_LIST= ['192.168.1.44'] 
 
 # HOST2IP = {'raspberrypi':'192.168.0.105' }
 # CLIENTS_CONFIG= {'192.168.0.105':0 }

@@ -109,6 +109,7 @@ class Client(Communicator):
 		time_tota_temp = 0
 
 		iteration_count = 0
+		nice_flag = True
 
 		if self.split_layer == (config.model_len -1): # Classic local training
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
@@ -128,8 +129,6 @@ class Client(Communicator):
 				outputs = self.net(inputs)
 
 				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
-				# temp stuff
-				# print(sys.getsizeof(msg))
 				
 				self.send_msg(self.sock, msg)
 				# print(e_time_tota_temp - s_time_tota_temp)
@@ -140,7 +139,12 @@ class Client(Communicator):
 				# s_time_tota_temp = time.time()
 				gradients = self.recv_msg(self.sock)[1].to(self.device)
 				# time_tota_temp += time.time() - s_time_tota_temp
-
+				
+				# temp stuff
+				if nice_flag:
+					print(outputs.shape)
+					print(gradients.shape)
+					nice_flag = False
 
 				outputs.backward(gradients)
 				self.optimizer.step()

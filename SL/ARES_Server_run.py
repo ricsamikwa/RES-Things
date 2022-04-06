@@ -62,10 +62,8 @@ for r in range(config.R):
 	# res['test_acc_record'].append(test_acc)
 
 	#temp item - WALK
-	# if r % 2 == 0:
-	# config.split_layer[0] = config.split_layer[0] - 1
-	# if config.split_layer[0] == 0:
-	# 	break
+	config.split_layer[0] = config.split_layer[0] - 1
+	
     #++++++++++++++++++++++++++++++++++++++
 
 	if offload:
@@ -90,7 +88,8 @@ for r in range(config.R):
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 	
 	
-
+	if config.split_layer[0] == -1:
+		break
 	if r > 49:
 		LR = config.LR * 0.1
 

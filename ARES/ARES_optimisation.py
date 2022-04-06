@@ -85,8 +85,7 @@ class BenchClient(Communicator):
 				# new random stuff
 				forward_time = time.time()	
 				outputs = self.net(inputs)	
-				print(inputs.shape)
-				print(outputs.shape)
+		
 				loss = self.criterion(outputs, targets)
 				forward_end_time = time.time()
 
@@ -108,14 +107,14 @@ class BenchClient(Communicator):
 				BenchClient_output = outputs.clone().detach().requires_grad_(True)
 				forward_end_time = time.time()
 				
-				print(inputs.shape)
-				print(BenchClient_output.shape)
+				# print(inputs.shape)
+				# print(BenchClient_output.shape)
 
 
 				# server forward/backward
 				self.server_optimizer.zero_grad()
 				outputs_server = self.server_net(BenchClient_output)
-				print(outputs_server.shape)
+				# print(outputs_server.shape)
 
 				loss = self.criterion(outputs_server, targets)
 				server_forward_end_time = time.time()
@@ -127,7 +126,7 @@ class BenchClient(Communicator):
 
 				#BenchClient backward
 				BenchClient_grad = BenchClient_output.grad.clone().detach()
-				print(BenchClient_grad.shape)
+				# print(BenchClient_grad.shape)
 				# print("gradients: "+str(sys.getsizeof(BenchClient_grad)))
 
 				outputs.backward(BenchClient_grad)
@@ -183,15 +182,16 @@ class BenchClient(Communicator):
 		# ('D', 8*8*64, 128, 1, 64, 128*8*8*64), 
 		# ('D', 128, 10, 1, 10, 128*10)]
 
-		# now we multiply everything by 8 * 100
-		forward_layerwise_data = [32*32*32*8*100, 32*16*16*8*100, 64*16*16*8*100, 64*8*8*8*100, 64*8*8*8*100, 64*8*100, 10*8*100]
-		backward_layerwise_data = [32*32*32*8*100, 32*16*16*8*100, 64*16*16*8*100, 64*8*8*8*100, 64*8*8*8*100, 64*8*100, 10*8*100]
+		# now we multiply everything by 8 * 100 - "why?" Answer: 1 byte is 8 bits AND 100 is batch size 
+		# 100, 32, 32, 32 - 100, 32, 16, 16 - 100, 64, 16, 16 - 100, 64, 8, 8 - 100, 64, 8, 8 - 100, 128 - 10
+		forward_layerwise_data = [32*32*32*8*100, 32*16*16*8*100, 64*16*16*8*100, 64*8*8*8*100, 64*8*8*8*100, 128*8*100, 10*8*100]
+		backward_layerwise_data = [32*32*32*8*100, 32*16*16*8*100, 64*16*16*8*100, 64*8*8*8*100, 64*8*8*8*100, 128*8*100, 10*8*100]
 
 		forward_layerwise_latency = [element * (1/(network_throughput * 1000000)) for element in forward_layerwise_data]
 
-		print(forward_layerwise_latency)
-		const_forward_layerwise_latency = [0.3262598514556885, 0.5824382305145264, 0.13750505447387695, 0.13750505447387695, 0.6942946910858154, 0.10664844512939453]
-		print(const_forward_layerwise_latency)
+		# print(forward_layerwise_latency)
+		# const_forward_layerwise_latency = [0.3262598514556885, 0.5824382305145264, 0.13750505447387695, 0.13750505447387695, 0.6942946910858154, 0.10664844512939453]
+		# print(const_forward_layerwise_latency)
 		# 40 Mbit/s 
 		backward_layerwise_latency = [element * (1/(network_throughput * 1000000)) for element in backward_layerwise_data]
 		# const_backward_layerwise_latency = [1.569196753501892, 0.6807714366912841, 0.3989624071121216, 0.3490042543411255, 0.09093882560729981, 0.0]
@@ -212,7 +212,7 @@ class BenchClient(Communicator):
 		# CUSTOM rec: 1755.296656187482
 		computation_power = 6400
 		transmission_power = 3800
-		receiving_power = 1100
+		receiving_power = 3100
 
 		return computation_power, transmission_power, receiving_power
 
@@ -227,41 +227,61 @@ class BenchClient(Communicator):
 		first = True 
 		# this has problems on mac
 		cpu_count = multiprocessing.cpu_count()
-		trainloader, classes= utils.get_local_dataloader(1, 0)
+		trainloader, classes= utils.get_local_dataloader(1, cpu_count)
 
-		device_forward_splitwise_latency = [0,0,0,0,0,0]
-		server_forward_splitwise_latency = [0,0,0,0,0,0]
-		server_backward_splitwise_latency = [0,0,0,0,0,0]
-		device_backward_splitwise_latency = [0,0,0,0,0,0]
+		device_forward_splitwise_latency = [0,0,0,0,0,0,0]
+		server_forward_splitwise_latency = [0,0,0,0,0,0,0]
+		server_backward_splitwise_latency = [0,0,0,0,0,0,0]
+		device_backward_splitwise_latency = [0,0,0,0,0,0,0]
 
 		# config.split_layer = 6
-		for r in range(config.model_len - 1, 0, -1):
+		for r in range(config.model_len - 1, -1, -1):
 			# config.split_layer = r
 			if r < config.model_len - 1:
 				self.reinitialize([r], offload, first, config.LR)
 
 			print("split point: "+str(r))
 			forward_device, forward_server, backward_server, backward_device = self.train(trainloader)
-			device_forward_splitwise_latency[r -1] = forward_device
-			server_forward_splitwise_latency[r -1] = forward_server
-			server_backward_splitwise_latency[r -1] = backward_server
-			device_backward_splitwise_latency[r -1] = backward_device
+			device_forward_splitwise_latency[r] = forward_device
+			server_forward_splitwise_latency[r] = forward_server
+			server_backward_splitwise_latency[r] = backward_server
+			device_backward_splitwise_latency[r] = backward_device
 
 			if r > 49:
 				LR = config.LR * 0.1
 			
 			
 		
-		# print(str(device_forward_splitwise_latency)+"\n"+str(server_forward_splitwise_latency)+"\n"+ str(device_backward_splitwise_latency)+ "\n"+str(server_backward_splitwise_latency))
+		print("device_forward: "+str(device_forward_splitwise_latency)+"\n server_forward "+str(server_forward_splitwise_latency)+"\ndevice_backward "+ str(device_backward_splitwise_latency)+ "\nserver_backward "+str(server_backward_splitwise_latency))
+		#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		# Jetson Nano
+		# # nano 6 - MAXN
+		device_forward_splitwise_latency_temp = [0.004781246185302734, 0.0066449642181396484, 0.006766557693481445, 0.006979227066040039, 0.009061574935913086, 0.018177032470703125, 0.028177032470703125]
+		device_backward_splitwise_latency_temp = [0.03945517539978027, 0.003378152847290039, 0.04713129997253418, 0.006301403045654297, 0.009520769119262695, 0.010449886322021484, 2.1309292316436768]
+		#[0.022193431854248047, 0.0034818649291992188, 0.050853729248046875, 0.0063800811767578125, 0.009701967239379883, 0.01049184799194336, 2.180183172225952]
+		#[0.049553632736206055, 0.00816798210144043, 0.05604887008666992, 0.006244659423828125, 0.010201454162597656, 0.013637304306030273, 2.991867780685425]
+		#[0.04182791709899902, 0.006999492645263672, 0.06741786003112793, 0.006561279296875, 0.010612726211547852, 0.010851860046386719, 2.8774609565734863]
 
-		# # nano 8 - MAXN
-		# device_forward_splitwise_latency_temp = [0.0023119449615478516, 0.003648519515991211, 0.003835916519165039, 0.006833791732788086, 0.021893978118896484, 9.588886499404907]
-		# device_backward_splitwise_latency_temp = [0.003223419189453125, 0.030652284622192383, 0.00543975830078125, 0.0074024200439453125, 0.007901191711425781, 1.5804917812347412]
+		# 5W
+		device_forward_splitwise_latency_temp = [0.005427837371826172, 0.005860328674316406, 0.016731977462768555, 0.01648855209350586, 0.017796754837036133, 0.018763811111450195, 0.30919710662842]
+		device_backward_splitwise_latency_temp = [0.027637004852294922, 0.0038847923278808594, 0.06612491607666016, 0.009628772735595703, 0.020987272262573242, 0.012530326843261719, 1.752488374710083]
+		# device backward only
+		# [0.0416417121887207, 0.012998580932617188, 0.06171226501464844, 0.008735895156860352, 0.012235879898071289, 0.015158891677856445, 2.297255754470825]
+		# [0.06478571891784668, 0.008269548416137695, 0.06983327865600586, 0.014587879180908203, 0.0221402645111084, 0.013542890548706055, 1.804015874862671]
+		# [0.027637004852294922, 0.0038847923278808594, 0.06612491607666016, 0.009628772735595703, 0.020987272262573242, 0.012530326843261719, 1.752488374710083]
 
-		# pi B 
-		device_forward_splitwise_latency_temp = [0.3574063777923584, 0.8774583339691162, 1.0404078960418701, 1.163121223449707, 1.2735788822174072, 1.314896583557129]
-		device_backward_splitwise_latency_temp = [0.536374568939209, 1.4896900653839111, 1.4612138271331787, 1.8985178470611572, 1.9876246452331543, 1.7998700141906738]
+		# 5W2
+		device_forward_splitwise_latency_temp = [0.009353160858154297, 0.01496434211730957, 0.019944190979003906, 0.02015913009643555, 0.023131608963012695, 0.027067930221557617, 0.62375044822693]
+		device_backward_splitwise_latency_temp = [0.03922104835510254, 0.011676549911499023, 0.0616455078125, 0.008456230163574219, 0.022606611251831055, 0.020107507705688477, 3.0512466430664062]
+		# [0.042633771896362305, 0.004704713821411133, 0.07010602951049805, 0.009582281112670898, 0.02142333984375, 0.012680530548095703, 2.4730494022369385]
+		# [0.03892946243286133, 0.009347915649414062, 0.0652003288269043, 0.011736392974853516, 0.01537632942199707, 0.022893428802490234, 2.667112350463867]
+		# [0.05083608627319336, 0.009041547775268555, 0.07958173751831055, 0.00937199592590332, 0.01843571662902832, 0.01883244514465332, 1.7328665256500244]
 
+		#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		# pi 3B 
+		device_forward_splitwise_latency_temp = [0.8614792823791504, 0.9474797248840332, 1.447148323059082, 1.4670040607452393, 1.647247552871704, 1.7771625518798828, 1.8515172004699707]
+		device_backward_splitwise_latency_temp = [0.4919867515563965, 0.5453286170959473, 1.5309937000274658, 1.4755029678344727, 1.9282042980194092, 2.0049049854278564, 2.091542959213257]
+		#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		
 		transmision_layerwise_latency, receiving_layerwise_latency = self.transmission_layerwise_time(bandwidth)
 		
@@ -301,8 +321,8 @@ class BenchClient(Communicator):
 		print(normal_training_time_array)
 		print(normal_energy_per_iter_array)
 		print("==============================")
-		print("training time argmin: "+ str(argmin(normal_training_time_array) + 1))
-		print("energy consump argmin: "+ str(argmin(normal_energy_per_iter_array) +1))
+		print("training time argmin: "+ str(argmin(normal_training_time_array)))
+		print("energy consump argmin: "+ str(argmin(normal_energy_per_iter_array)))
 		print("==============================")
 
 		#scaling
@@ -322,10 +342,10 @@ class BenchClient(Communicator):
 
 logger.info('Preparing Device')
 benchClient = BenchClient(1, '192.168.1.100', 50000, 'VGG5', 6)
-temp_bandwidth = 20
+temp_bandwidth = 5
 
 s_time_rebuild = time.time()
-offloading_strategy = benchClient.ARES_optimiser(0.4, temp_bandwidth) + 1
+offloading_strategy = benchClient.ARES_optimiser(0.4, temp_bandwidth)
 e_time_rebuild = time.time()
 print("Current offloading strategy: "+ str(offloading_strategy))
 print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))
