@@ -42,36 +42,15 @@ class Client(Communicator):
 
 		self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
 					  momentum=0.9)
-		logger.debug('Receiving Global Weights..')
-
-		#weights = self.recv_msg(self.sock)[1]
-		# weights = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
-		# if self.split_layer == (config.model_len -1):
-		# 	self.net.load_state_dict(weights)
-		# else:
-		# 	pweights = utils.split_weights_client(weights,self.net.state_dict())
-		# 	self.net.load_state_dict(pweights)
-		# logger.debug('Initialize Finished')
+		logger.debug('Receiving Weights..')
 
 	def train(self, trainloader):
-		# Network speed test
-		# network_time_start = time.time()
-		# msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-		# self.send_msg(self.sock, msg)
-		# msg = self.recv_msg(self.sock,'MSG_TEST_NETWORK')[1]
-		# network_time_end = time.time()
-		# network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s 
-
-		# logger.info('Network speed is {:}'.format(network_speed))
-		# msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
-		# self.send_msg(self.sock, msg)
-
-		# Training start
+	
 		s_time_total = time.time()
 		time_training_c = 0
 		self.net.to(self.device)
 		self.net.train()
-		if self.split_layer == (config.model_len -1): # No offloading training
+		if self.split_layer == (config.model_len -1):
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
 				self.optimizer.zero_grad()
@@ -80,7 +59,7 @@ class Client(Communicator):
 				loss.backward()
 				self.optimizer.step()
 			
-		else: # Offloading training
+		else: 
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
 				self.optimizer.zero_grad()
@@ -88,8 +67,6 @@ class Client(Communicator):
 
 				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
 				self.send_msg(self.sock, msg)
-
-				# Wait receiving server gradients
 				gradients = self.recv_msg(self.sock)[1].to(self.device)
 
 				outputs.backward(gradients)
@@ -101,8 +78,6 @@ class Client(Communicator):
 		training_time_pr = (e_time_total - s_time_total) / int((config.N / (config.K * config.B)))
 		logger.info('training_time_per_iteration: ' + str(training_time_pr))
 
-		# msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
-		# self.send_msg(self.sock, msg)
 
 		return e_time_total - s_time_total
 		
@@ -117,12 +92,12 @@ logger.info('Preparing Client')
 client = Client(1, '192.168.5.22', 50000, 'VGG5', 6)
 
 offload = False
-first = True # First initializaiton control
+first = True 
 client.initialize(6, offload, first, config.LR)
 first = False 
 
 logger.info('Preparing Data.')
-# this has problems on mac
+# this has problems on mac OS
 cpu_count = multiprocessing.cpu_count()
 trainloader, classes= utils.get_local_dataloader(1, cpu_count)
 
@@ -133,7 +108,6 @@ for r in range(config.R):
 	logger.info('ROUND: {} END'.format(r))
 	
 	logger.info('==> Waiting for aggregration')
-	#client.upload()
 
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 	s_time_rebuild = time.time()

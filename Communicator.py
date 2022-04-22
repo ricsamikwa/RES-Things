@@ -12,13 +12,6 @@ class Communicator(object):
 		self.ip = ip_address
 		self.sock = socket.socket()
 
-
-	def send_msg(self, sock, msg):
-		msg_pickle = pickle.dumps(msg)
-		sock.sendall(struct.pack(">I", len(msg_pickle)))
-		sock.sendall(msg_pickle)
-		logger.debug(msg[0]+'sent to'+str(sock.getpeername()[0])+':'+str(sock.getpeername()[1]))
-
 	def recv_msg(self, sock, expect_msg_type=None):
 		msg_len = struct.unpack(">I", sock.recv(4))[0]
 		msg = sock.recv(msg_len, socket.MSG_WAITALL)
@@ -31,3 +24,11 @@ class Communicator(object):
 			elif msg[0] != expect_msg_type:
 				raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
 		return msg
+		
+	def send_msg(self, sock, msg):
+		msg_pickle = pickle.dumps(msg)
+		sock.sendall(struct.pack(">I", len(msg_pickle)))
+		sock.sendall(msg_pickle)
+		logger.debug(msg[0]+'sent to'+str(sock.getpeername()[0])+':'+str(sock.getpeername()[1]))
+
+	

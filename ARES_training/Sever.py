@@ -10,7 +10,7 @@ import tqdm
 import time
 import random
 import numpy as np
-from ARES.ARES_optimisation import BenchClient
+from ARESopt.ARES_optimisation import BenchClient
 
 import logging
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -36,9 +36,9 @@ class Sever(Communicator):
 
 		while len(self.client_socks) < config.K:
 			self.sock.listen(5)
-			logger.info("Waiting Incoming Connections.")
+			logger.info("Incoming Connections...")
 			(client_sock, (ip, port)) = self.sock.accept()
-			logger.info('Got connection from ' + str(ip))
+			logger.info('connection from ' + str(ip))
 			logger.info(client_sock)
 			self.client_socks[str(ip)] = client_sock
 
@@ -110,11 +110,9 @@ class Sever(Communicator):
 			msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
 			self.ttpi[msg[1]] = msg[2]
 
-		self.group_labels = self.clustering(self.ttpi, self.bandwidth)
 		self.offloading = self.get_offloading(self.split_layers)
-		state = self.concat_norm(self.ttpi, self.offloading)
 
-		return state, self.bandwidth
+		return self.bandwidth
 
 	def _thread_network_testing(self, client_ip):
 		msg = self.recv_msg(self.client_socks[client_ip], 'MSG_TEST_NETWORK')
@@ -188,19 +186,6 @@ class Sever(Communicator):
 
 		return acc
 
-	def clustering(self, state, bandwidth):
-		#sort bandwidth in config.CLIENTS_LIST order
-		bandwidth_order =[]
-		for c in config.CLIENTS_LIST:
-			bandwidth_order.append(bandwidth[c])
-
-		labels = [0,0,1,0,0] # Previous clustering results in RL
-		for i in range(len(bandwidth_order)):
-			if bandwidth_order[i] < 5:
-				labels[i] = 2 # If network speed is limited under 5Mbps, we assign the device into group 2
-
-		return labels
-
 	# The function to change more
 	def adaptive_offload(self, bandwidth):
 		
@@ -213,11 +198,11 @@ class Sever(Communicator):
 		# e_time_rebuild = time.time()
 		# print("Current offloading strategy: "+ str(offloading_strategy))
 		# print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))
-		# config.split_layer = [offloading_strategy]
+		# config.split_layer = [1, offloading_strategy]
 		#+++++++++++++++++++++++++++++++++
 
 		# 1 3 5 splitting same hardware configuration
-		# config.split_layer = [1, 3, 4]
+		config.split_layer = [1, 4]
 		#++++++++++++++++++++++++++++++++
 		# config.split_layer = [5]
 		
@@ -226,14 +211,6 @@ class Sever(Communicator):
 		msg = ['SPLIT_LAYERS',config.split_layer]
 		self.scatter(msg)
 		return config.split_layer
-
-	def expand_actions(self, actions, clients_list): # Expanding group actions to each device
-		full_actions = []
-
-		for i in range(len(clients_list)):
-			full_actions.append(actions[self.group_labels[i]])
-
-		return full_actions
 
 	def action_to_layer(self, action): # Expanding group actions to each device
 		#first caculate cumulated flops
@@ -251,30 +228,10 @@ class Sever(Communicator):
 		for v in action:
 			idx = np.where(np.abs(model_flops_list - v) == np.abs(model_flops_list - v).min()) 
 			idx = idx[0][-1]
-			if idx >= 5: # all FC layers combine to one option
+			if idx >= 5: 
 				idx = 6
 			split_layer.append(idx)
 		return split_layer
-
-	def concat_norm(self, ttpi, offloading):
-		ttpi_order = []
-		offloading_order =[]
-		for c in config.CLIENTS_LIST:
-			ttpi_order.append(ttpi[c])
-			offloading_order.append(offloading[c])
-
-		group_max_index = [0 for i in range(config.G)]
-		group_max_value = [0 for i in range(config.G)]
-		for i in range(len(config.CLIENTS_LIST)):
-			label = self.group_labels[i]
-			if ttpi_order[i] >= group_max_value[label]:
-				group_max_value[label] = ttpi_order[i]
-				group_max_index[label] = i
-
-		ttpi_order = np.array(ttpi_order)[np.array(group_max_index)]
-		offloading_order = np.array(offloading_order)[np.array(group_max_index)]
-		state = np.append(ttpi_order, offloading_order)
-		return state
 
 	def get_offloading(self, split_layer):
 		offloading = {}

@@ -1,4 +1,3 @@
-#dynamically build vgg model 
 import torch.nn as nn
 
 class VGG(nn.Module):

@@ -117,6 +117,8 @@ class BenchClient(Communicator):
 				# print(outputs_server.shape)
 
 				loss = self.criterion(outputs_server, targets)
+				# print(loss.shape)
+
 				server_forward_end_time = time.time()
 				# print("feature maps: "+str(sys.getsizeof(BenchClient_output)))
 
@@ -342,4 +344,4 @@ s_time_rebuild = time.time()
 offloading_strategy = benchClient.ARES_optimiser(0.5, temp_bandwidth) +1
 e_time_rebuild = time.time()
 print("Current offloading strategy: "+ str(offloading_strategy))
-print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))
+# print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))

@@ -16,7 +16,7 @@ import utils
 #import PPO
 
 parser=argparse.ArgumentParser()
-parser.add_argument('--offload', help='ARES or classic local mode', type= utils.str2bool, default= False)
+parser.add_argument('--offload', help='ARES or local mode', type= utils.str2bool, default= False)
 args=parser.parse_args()
 
 LR = config.LR
@@ -30,16 +30,13 @@ sever = Sever(0, ip_address, config.SERVER_PORT, 'VGG5')
 sever.initialize(config.split_layer, offload, first, LR)
 first = False
 
-state_dim = 2*config.G
-action_dim = config.G
-
 #if offload:
 	#handle changes of split layers
 
 if offload:
 	logger.info('ARES Training')
 else:
-	logger.info('Classic Local (FL) Training')
+	logger.info('Local Training')
 
 # res = {}
 # res['trianing_time'], res['test_acc_record'], res['bandwidth_record'] = [], [], []
@@ -49,8 +46,8 @@ for r in range(config.R):
 	logger.info('==> Round {:} Start'.format(r))
 
 	s_time = time.time()
-	state, bandwidth = sever.train(thread_number= config.K, client_ips= config.CLIENTS_LIST)
-	aggregrated_model = sever.aggregate(config.CLIENTS_LIST)
+	bandwidth = sever.train(thread_number= config.K, client_ips= config.CLIENTS_LIST)
+	new_model = sever.aggregate(config.CLIENTS_LIST)
 	e_time = time.time()
 
 	# Recording each round training time, bandwidth and test accuracy
@@ -61,8 +58,8 @@ for r in range(config.R):
 	test_acc = sever.test(r)
 	# res['test_acc_record'].append(test_acc)
 
-	#temp item - WALK
-	config.split_layer[0] = config.split_layer[0] - 1
+	#temp item - WALK - senstive
+	# config.split_layer[0] = config.split_layer[0] - 1
 	
     #++++++++++++++++++++++++++++++++++++++
 
