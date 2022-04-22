@@ -15,9 +15,9 @@ import numpy as np
 import sys
 
 sys.path.append('../')
-import config
-import utils
-from Communicator import *
+import configurations
+import functions
+from Wireless import *
 import multiprocessing
 # from torchsummary import summary
 import torchvision.models as models
@@ -33,13 +33,13 @@ logger = logging.getLogger(__name__)
 np.random.seed(0)
 torch.manual_seed(0)
 
-class BenchClient(Communicator):
+class BenchClient(Wireless):
 	def __init__(self, index, ip_address, datalen, model_name, split_layer):
 		super(BenchClient, self).__init__(index, ip_address)
 		self.datalen = datalen
 		self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 		self.model_name = model_name
-		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
+		self.uninet = functions.get_model('Unit', self.model_name, configurations.model_len-1, self.device, configurations.model_cfg)
 		# print(sys.getsizeof(self.uninet))
 		# logger.info('Connecting to Server.')
 		# self.sock.connect((server_addr,server_port))
@@ -49,8 +49,8 @@ class BenchClient(Communicator):
 			self.split_layer = split_layer[0]
 
 			logger.debug('Building Model.')
-			self.net = utils.get_model('Client', self.model_name, self.split_layer, self.device, config.model_cfg)
-			self.server_net = utils.get_model('Server', self.model_name, self.split_layer, self.device, config.model_cfg)
+			self.net = functions.get_model('Client', self.model_name, self.split_layer, self.device, configurations.model_cfg)
+			self.server_net = functions.get_model('Server', self.model_name, self.split_layer, self.device, configurations.model_cfg)
 
 			logger.debug(self.net)
 			self.criterion = nn.CrossEntropyLoss()
@@ -78,7 +78,7 @@ class BenchClient(Communicator):
 
 		self.net.to(self.device)
 		self.net.train()
-		if self.split_layer == (config.model_len -1): # No offloading training
+		if self.split_layer == (configurations.model_len -1): # No offloading training
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
 				self.device_optimizer.zero_grad()
@@ -232,12 +232,12 @@ class BenchClient(Communicator):
 		first = True # First initializaiton control
 		# first = True # First initializaiton control
 
-		self.initialize([6], offload, first, config.LR)
+		self.initialize([6], offload, first, configurations.LR)
 		# first = False 
 		first = True 
 		# this has problems on mac
 		cpu_count = multiprocessing.cpu_count()
-		trainloader, classes= utils.get_local_dataloader(1, cpu_count)
+		trainloader, classes= functions.get_local_dataloader(1, cpu_count)
 
 		device_forward_splitwise_latency = [0,0,0,0,0,0,0]
 		server_forward_splitwise_latency = [0,0,0,0,0,0,0]
@@ -245,10 +245,10 @@ class BenchClient(Communicator):
 		device_backward_splitwise_latency = [0,0,0,0,0,0,0]
 
 		# config.split_layer = 6
-		for r in range(config.model_len - 1, -1, -1):
+		for r in range(configurations.model_len - 1, -1, -1):
 			# config.split_layer = r
-			if r < config.model_len - 1:
-				self.reinitialize([r], offload, first, config.LR)
+			if r < configurations.model_len - 1:
+				self.reinitialize([r], offload, first, configurations.LR)
 
 			print("split point: "+str(r))
 			forward_device, forward_server, backward_server, backward_device = self.train(trainloader)
@@ -258,7 +258,7 @@ class BenchClient(Communicator):
 			device_backward_splitwise_latency[r] = backward_device
 
 			if r > 49:
-				LR = config.LR * 0.1
+				LR = configurations.LR * 0.1
 			
 			
 		

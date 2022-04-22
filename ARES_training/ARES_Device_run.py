@@ -12,24 +12,24 @@ logger = logging.getLogger(__name__)
 
 import sys
 sys.path.append('../')
-from Client import Client
-import config
-import utils
+from ARES_training.Device import Client
+import configurations
+import functions
 # from threading import Thread
 
 parser=argparse.ArgumentParser()
-parser.add_argument('--offload', help='ARES or classic local mode', type= utils.str2bool, default= False)
+parser.add_argument('--offload', help='ARES or classic local mode', type= functions.str2bool, default= False)
 args=parser.parse_args()
 
 hostname = socket.gethostname().replace('-desktop', '')
-ip_address = config.HOST2IP[hostname]
-index = config.CLIENTS_CONFIG[ip_address]
-datalen = config.N / config.K
-split_layer = config.split_layer[index]
-LR = config.LR
+ip_address = configurations.HOST2IP[hostname]
+index = configurations.CLIENTS_CONFIG[ip_address]
+datalen = configurations.N / configurations.K
+split_layer = configurations.split_layer[index]
+LR = configurations.LR
 
 logger.info('Preparing Client')
-client = Client(index, ip_address, config.SERVER_ADDR, config.SERVER_PORT, datalen, 'VGG5', split_layer)
+client = Client(index, ip_address, configurations.SERVER_ADDR, configurations.SERVER_PORT, datalen, 'VGG5', split_layer)
 
 offload = args.offload
 first = True # First initializaiton control
@@ -38,7 +38,7 @@ first = False
 
 logger.info('Preparing Data.')
 cpu_count = multiprocessing.cpu_count()
-trainloader, classes= utils.get_local_dataloader(index, cpu_count)
+trainloader, classes= functions.get_local_dataloader(index, cpu_count)
 
 if offload:
 	logger.info('ARES Training')
@@ -49,28 +49,28 @@ flag = False # Bandwidth control flag.
 
 # stop_power_flag = False
 
-# def power_monitor_thread(stop):
-# 	power = 0
-# 	# power input
-# 	filename =''+ hostname+'-'+str(config.split_layer[index])+'_power_config_2.csv'
+def power_monitor_thread(stop):
+	power = 0
+	# power input
+	filename =''+ hostname+'-'+str(configurations.split_layer[index])+'_power_config_2.csv'
 
-# 	while True:
+	while True:
 
-# 		if stop():
-# 			break
+		if stop():
+			break
 
-# 		with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_power0_input') as t:
-# 			power = ((t.read()))
+		with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_power0_input') as t:
+			power = ((t.read()))
 
-# 		# print(power)	
-# 		with open(config.home + '/results/' + filename,'a', newline='') as file:
-# 			writer = csv.writer(file)
-# 			writer.writerow([int(power)])
+		# print(power)	
+		with open(configurations.home + '/results/' + filename,'a', newline='') as file:
+			writer = csv.writer(file)
+			writer.writerow([int(power)])
 			
-# 		time.sleep(0.5)
+		time.sleep(0.5)
 	
 	
-# 	return
+	return
 	
 
 
@@ -82,7 +82,7 @@ def training_thread(LR):
 	# 	t1 = Thread(target=power_monitor_thread, args =(lambda : stop_threads,))
 	# 	t1.start()
 
-	for r in range(config.R):
+	for r in range(configurations.R):
 		logger.info('====================================>')
 		logger.info('ROUND: {} START'.format(r))
 
@@ -90,7 +90,7 @@ def training_thread(LR):
 		training_time,training_time_pr, network_speed, average_time = client.train(trainloader, hostname)
 
 		if offload:
-			filename =''+ hostname+'-'+str(config.split_layer[index])+'_config_3_temp.csv'
+			filename =''+ hostname+'-'+str(configurations.split_layer[index])+'_config_3_temp.csv'
 		else:
 			filename = ''+ hostname+'_config_3_temp.csv'
 
@@ -106,7 +106,7 @@ def training_thread(LR):
 
 		
 
-		with open(config.home + '/results/' + filename,'a', newline='') as file:
+		with open(configurations.home + '/results/' + filename,'a', newline='') as file:
 			writer = csv.writer(file)
 			writer.writerow([network_speed,training_time_pr, training_time, average_time])
 
@@ -118,14 +118,14 @@ def training_thread(LR):
 		logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 		s_time_rebuild = time.time()
 		if offload:
-			config.split_layer = client.recv_msg(client.sock)[1]
+			configurations.split_layer = client.recv_msg(client.sock)[1]
 			#config.split_layer = [2]
 			# print(config.split_layer)
 
 		if r > 49:
-			LR = config.LR * 0.1
+			LR = configurations.LR * 0.1
 
-		client.reinitialize(config.split_layer[index], offload, first, LR)
+		client.reinitialize(configurations.split_layer[index], offload, first, LR)
 		e_time_rebuild = time.time()
 		logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
 		logger.info('==> Reinitialization Finish')

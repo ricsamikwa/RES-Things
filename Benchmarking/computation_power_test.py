@@ -7,9 +7,9 @@ import numpy as np
 import sys
 
 sys.path.append('../')
-import config
-import utils
-from Communicator import *
+import configurations
+import functions
+from Wireless import *
 import multiprocessing
 
 
@@ -20,13 +20,13 @@ logger = logging.getLogger(__name__)
 np.random.seed(0)
 torch.manual_seed(0)
 
-class Client(Communicator):
+class Client(Wireless):
 	def __init__(self, index, ip_address, datalen, model_name, split_layer):
 		super(Client, self).__init__(index, ip_address)
 		self.datalen = datalen
 		self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 		self.model_name = model_name
-		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
+		self.uninet = functions.get_model('Unit', self.model_name, configurations.model_len-1, self.device, configurations.model_cfg)
 
 		# logger.info('Connecting to Server.')
 		# self.sock.connect((server_addr,server_port))
@@ -36,7 +36,7 @@ class Client(Communicator):
 			self.split_layer = split_layer
 
 			logger.debug('Building Model.')
-			self.net = utils.get_model('Client', self.model_name, self.split_layer, self.device, config.model_cfg)
+			self.net = functions.get_model('Client', self.model_name, self.split_layer, self.device, configurations.model_cfg)
 			logger.debug(self.net)
 			self.criterion = nn.CrossEntropyLoss()
 
@@ -50,7 +50,7 @@ class Client(Communicator):
 		time_training_c = 0
 		self.net.to(self.device)
 		self.net.train()
-		if self.split_layer == (config.model_len -1):
+		if self.split_layer == (configurations.model_len -1):
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
 				self.optimizer.zero_grad()
@@ -75,7 +75,7 @@ class Client(Communicator):
 		e_time_total = time.time()
 		logger.info('Total time: ' + str(e_time_total - s_time_total))
 
-		training_time_pr = (e_time_total - s_time_total) / int((config.N / (config.K * config.B)))
+		training_time_pr = (e_time_total - s_time_total) / int((configurations.N / (configurations.K * configurations.B)))
 		logger.info('training_time_per_iteration: ' + str(training_time_pr))
 
 
@@ -93,15 +93,15 @@ client = Client(1, '192.168.5.22', 50000, 'VGG5', 6)
 
 offload = False
 first = True 
-client.initialize(6, offload, first, config.LR)
+client.initialize(6, offload, first, configurations.LR)
 first = False 
 
 logger.info('Preparing Data.')
 # this has problems on mac OS
 cpu_count = multiprocessing.cpu_count()
-trainloader, classes= utils.get_local_dataloader(1, cpu_count)
+trainloader, classes= functions.get_local_dataloader(1, cpu_count)
 
-for r in range(config.R):
+for r in range(configurations.R):
 	logger.info('====================================>')
 	logger.info('ROUND: {} START'.format(r))
 	training_time = client.train(trainloader)
@@ -112,12 +112,12 @@ for r in range(config.R):
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 	s_time_rebuild = time.time()
 	if offload:
-		config.split_layer = client.recv_msg(client.sock)[1]
+		configurations.split_layer = client.recv_msg(client.sock)[1]
 
 	if r > 49:
-		LR = config.LR * 0.1
+		LR = configurations.LR * 0.1
 
-	client.reinitialize(config.split_layer[0], offload, first, config.LR)
+	client.reinitialize(configurations.split_layer[0], offload, first, configurations.LR)
 	e_time_rebuild = time.time()
 	logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
 	logger.info('==> Reinitialization Finish')

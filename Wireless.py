@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class Communicator(object):
+class Wireless(object):
 	def __init__(self, index, ip_address):
 		self.index = index
 		self.ip = ip_address

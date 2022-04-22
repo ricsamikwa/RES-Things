@@ -8,9 +8,9 @@ import sys
 import csv
 
 sys.path.append('../')
-import config
-import utils
-from Communicator import *
+import configurations
+import functions
+from Wireless import *
 from threading import Thread
 
 import logging
@@ -20,16 +20,16 @@ logger = logging.getLogger(__name__)
 np.random.seed(0)
 torch.manual_seed(0)
 hostname = socket.gethostname().replace('-desktop', '')
-ip_address = config.HOST2IP[hostname]
-index = config.CLIENTS_CONFIG[ip_address]
+ip_address = configurations.HOST2IP[hostname]
+index = configurations.CLIENTS_CONFIG[ip_address]
 
-class Client(Communicator):
+class Client(Wireless):
 	def __init__(self, index, ip_address, server_addr, server_port, datalen, model_name, split_layer):
 		super(Client, self).__init__(index, ip_address)
 		self.datalen = datalen
 		self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 		self.model_name = model_name
-		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
+		self.uninet = functions.get_model('Unit', self.model_name, configurations.model_len-1, self.device, configurations.model_cfg)
 
 		logger.info('Connecting to Server.')
 		self.sock.connect((server_addr,server_port))
@@ -39,7 +39,7 @@ class Client(Communicator):
 			self.split_layer = split_layer
 
 			logger.debug('Building Model.')
-			self.net = utils.get_model('Client', self.model_name, self.split_layer, self.device, config.model_cfg)
+			self.net = functions.get_model('Client', self.model_name, self.split_layer, self.device, configurations.model_cfg)
 			logger.debug(self.net)
 			self.criterion = nn.CrossEntropyLoss()
 
@@ -47,17 +47,17 @@ class Client(Communicator):
 					  momentum=0.9)
 		logger.debug('Receiving Global Weights..')
 		weights = self.recv_msg(self.sock)[1]
-		if self.split_layer == (config.model_len -1):
+		if self.split_layer == (configurations.model_len -1):
 			self.net.load_state_dict(weights)
 		else:
-			pweights = utils.split_weights_client(weights,self.net.state_dict())
+			pweights = functions.split_weights_client(weights,self.net.state_dict())
 			self.net.load_state_dict(pweights)
 		logger.debug('Initialize Finished')
 
 	def power_monitor_thread(self, stop):
 		power = 0
 		# power input
-		filename =''+ hostname+'-'+str(config.split_layer[index])+'_power_config_3_temp.csv'
+		filename =''+ hostname+'-'+str(configurations.split_layer[index])+'_power_config_3_temp.csv'
 		time.sleep(0.4)
 		# while True:
 		for x in range(10):
@@ -69,7 +69,7 @@ class Client(Communicator):
 				power = ((t.read()))
 
 			# print(power)	
-			with open(config.home + '/results/' + filename,'a', newline='') as file:
+			with open(configurations.home + '/results/' + filename,'a', newline='') as file:
 				writer = csv.writer(file)
 				writer.writerow([int(power)])
 				
@@ -87,7 +87,7 @@ class Client(Communicator):
 		network_time_end = time.time()
 
 		# send a model to and from a server (size in bytes * 8 * 2)
-		network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s 
+		network_speed = (2 * configurations.model_size * 8) / (network_time_end - network_time_start) #Mbit/s 
 
 		logger.info('Network speed is {:}'.format(network_speed))
 		msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
@@ -111,7 +111,7 @@ class Client(Communicator):
 		iteration_count = 0
 		nice_flag = True
 
-		if self.split_layer == (config.model_len -1): # Classic local training
+		if self.split_layer == (configurations.model_len -1): # Classic local training
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
 				self.optimizer.zero_grad()
@@ -153,7 +153,7 @@ class Client(Communicator):
 		e_time_total = time.time()
 		logger.info('Total time: ' + str(e_time_total - s_time_total))
 
-		iteration = int((config.N / (config.K * config.B)))
+		iteration = int((configurations.N / (configurations.K * configurations.B)))
 		# this is a critical
 		iteration = 50 # verify this number 50000/(5*100) = 100, but we have 50 iterations from the data ?
 		logger.info(str(iteration_count) + ' iterations!!')

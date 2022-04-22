@@ -18,23 +18,23 @@ logger = logging.getLogger(__name__)
 
 import sys
 sys.path.append('../')
-from Communicator import *
-import utils
-import config
+from Wireless import *
+import functions
+import configurations
 
 np.random.seed(0)
 torch.manual_seed(0)
 
-class Sever(Communicator):
+class Edge_Server(Wireless):
 	def __init__(self, index, ip_address, server_port, model_name):
-		super(Sever, self).__init__(index, ip_address)
+		super(Edge_Server, self).__init__(index, ip_address)
 		self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 		self.port = server_port
 		self.model_name = model_name
 		self.sock.bind((self.ip, self.port))
 		self.client_socks = {}
 
-		while len(self.client_socks) < config.K:
+		while len(self.client_socks) < configurations.K:
 			self.sock.listen(5)
 			logger.info("Incoming Connections...")
 			(client_sock, (ip, port)) = self.sock.accept()
@@ -42,11 +42,11 @@ class Sever(Communicator):
 			logger.info(client_sock)
 			self.client_socks[str(ip)] = client_sock
 
-		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
+		self.uninet = functions.get_model('Unit', self.model_name, configurations.model_len-1, self.device, configurations.model_cfg)
 
 		self.transform_test = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
-		self.testset = torchvision.datasets.CIFAR10(root=config.dataset_path, train=False, download=False, transform=self.transform_test)
+		self.testset = torchvision.datasets.CIFAR10(root=configurations.dataset_path, train=False, download=False, transform=self.transform_test)
 		self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
  		
 	def initialize(self, split_layers, offload, first, LR):
@@ -55,19 +55,19 @@ class Sever(Communicator):
 			self.nets = {}
 			self.optimizers= {}
 			for i in range(len(split_layers)):
-				client_ip = config.CLIENTS_LIST[i]
-				if split_layers[i] < len(config.model_cfg[self.model_name]) -1: # Only offloading client need initialize optimizer in server
-					self.nets[client_ip] = utils.get_model('Server', self.model_name, split_layers[i], self.device, config.model_cfg)
+				client_ip = configurations.CLIENTS_LIST[i]
+				if split_layers[i] < len(configurations.model_cfg[self.model_name]) -1: # Only offloading client need initialize optimizer in server
+					self.nets[client_ip] = functions.get_model('Server', self.model_name, split_layers[i], self.device, configurations.model_cfg)
 
 					#offloading weight in server also need to be initialized from the same global weight
-					cweights = utils.get_model('Client', self.model_name, split_layers[i], self.device, config.model_cfg).state_dict()
-					pweights = utils.split_weights_server(self.uninet.state_dict(),cweights,self.nets[client_ip].state_dict())
+					cweights = functions.get_model('Client', self.model_name, split_layers[i], self.device, configurations.model_cfg).state_dict()
+					pweights = functions.split_weights_server(self.uninet.state_dict(),cweights,self.nets[client_ip].state_dict())
 					self.nets[client_ip].load_state_dict(pweights)
 
 					self.optimizers[client_ip] = optim.SGD(self.nets[client_ip].parameters(), lr=LR,
 					  momentum=0.9)
 				else:
-					self.nets[client_ip] = utils.get_model('Server', self.model_name, split_layers[i], self.device, config.model_cfg)
+					self.nets[client_ip] = functions.get_model('Server', self.model_name, split_layers[i], self.device, configurations.model_cfg)
 			self.criterion = nn.CrossEntropyLoss()
 
 		msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
@@ -92,7 +92,7 @@ class Sever(Communicator):
 		# Training start
 		self.threads = {}
 		for i in range(len(client_ips)):
-			if config.split_layer[i] == (config.model_len -1):
+			if configurations.split_layer[i] == (configurations.model_len -1):
 				self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_no_offloading, args=(client_ips[i],))
 				logger.info(str(client_ips[i]) + ' no offloading training start')
 				self.threads[client_ips[i]].start()
@@ -150,14 +150,14 @@ class Sever(Communicator):
 		w_local_list =[]
 		for i in range(len(client_ips)):
 			msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
-			if config.split_layer[i] != (config.model_len -1):
-				w_local = (utils.concat_weights(self.uninet.state_dict(),msg[1],self.nets[client_ips[i]].state_dict()),config.N / config.K)
+			if configurations.split_layer[i] != (configurations.model_len -1):
+				w_local = (functions.concat_weights(self.uninet.state_dict(),msg[1],self.nets[client_ips[i]].state_dict()),configurations.N / configurations.K)
 				w_local_list.append(w_local)
 			else:
-				w_local = (msg[1],config.N / config.K)
+				w_local = (msg[1],configurations.N / configurations.K)
 				w_local_list.append(w_local)
-		zero_model = utils.zero_init(self.uninet).state_dict()
-		aggregrated_model = utils.fed_avg(zero_model, w_local_list, config.N)
+		zero_model = functions.zero_init(self.uninet).state_dict()
+		aggregrated_model = functions.fed_avg(zero_model, w_local_list, configurations.N)
 		
 		self.uninet.load_state_dict(aggregrated_model)
 		return aggregrated_model
@@ -182,7 +182,7 @@ class Sever(Communicator):
 		logger.info('Test Accuracy: {}'.format(acc))
 
 		# Save checkpoint.
-		torch.save(self.uninet.state_dict(), './'+ config.model_name +'.pth')
+		torch.save(self.uninet.state_dict(), './'+ configurations.model_name +'.pth')
 
 		return acc
 
@@ -202,22 +202,22 @@ class Sever(Communicator):
 		#+++++++++++++++++++++++++++++++++
 
 		# 1 3 5 splitting same hardware configuration
-		config.split_layer = [1, 4]
+		configurations.split_layer = [1, 4]
 		#++++++++++++++++++++++++++++++++
 		# config.split_layer = [5]
 		
-		logger.info('Next Round OPs: ' + str(config.split_layer))
+		logger.info('Next Round OPs: ' + str(configurations.split_layer))
 
-		msg = ['SPLIT_LAYERS',config.split_layer]
+		msg = ['SPLIT_LAYERS',configurations.split_layer]
 		self.scatter(msg)
-		return config.split_layer
+		return configurations.split_layer
 
 	def action_to_layer(self, action): # Expanding group actions to each device
 		#first caculate cumulated flops
 		model_state_flops = []
 		cumulated_flops = 0
 
-		for l in config.model_cfg[config.model_name]:
+		for l in configurations.model_cfg[configurations.model_name]:
 			cumulated_flops += l[5]
 			model_state_flops.append(cumulated_flops)
 
@@ -237,12 +237,12 @@ class Sever(Communicator):
 		offloading = {}
 		workload = 0
 
-		assert len(split_layer) == len(config.CLIENTS_LIST)
-		for i in range(len(config.CLIENTS_LIST)):
-			for l in range(len(config.model_cfg[config.model_name])):
+		assert len(split_layer) == len(configurations.CLIENTS_LIST)
+		for i in range(len(configurations.CLIENTS_LIST)):
+			for l in range(len(configurations.model_cfg[configurations.model_name])):
 				if l <= split_layer[i]:
-					workload += config.model_cfg[config.model_name][l][5]
-			offloading[config.CLIENTS_LIST[i]] = workload / config.total_flops
+					workload += configurations.model_cfg[configurations.model_name][l][5]
+			offloading[configurations.CLIENTS_LIST[i]] = workload / configurations.total_flops
 			workload = 0
 
 		return offloading

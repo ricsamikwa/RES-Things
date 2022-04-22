@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader, Subset
 
 
 import pickle, struct, socket
-from vgg import *
-from config import *
+from nn_model import *
+from configurations import *
 import collections
 import numpy as np
 
