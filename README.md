@@ -7,8 +7,9 @@ ARES accelerates local training in resource-constrained devices and minimizes th
 ### Setting up the environment
 Python 3 with Pytorch version 1.4 and torchvision 0.5. IoT device (NVIDIA Jetson Nano and Raspberry Pi). 
 Some pre-built PyTorch and torchvision pip wheel:
-- Pyotrch: https://github.com/FedML-AI/FedML-IoT/tree/master/pytorch-pkg-on-rpi
+
 - Jetson: https://forums.developer.nvidia.com/t/pytorch-for-jetson-version-1-8-0-now-available/72048
+- Pyotrch: https://discuss.pytorch.org/t/pytorch-1-3-wheels-for-raspberry-pi-python-3-7/58580
 
 #### Packages
 * socket
@@ -27,4 +28,4 @@ Some pre-built PyTorch and torchvision pip wheel:
 #### Dataset
 CIFAR10 datasets can be downloaded manually and put into the `datasets/CIFAR10` folder. 
 - CIFAR10: https://www.cs.toronto.edu/~kriz/cifar.html
-Altenatively, set the download parameter to True (on initial run) in torchvision.datasets.CIFAR10 in functions.py
+- Altenatively, set the download parameter to True (on initial run) in torchvision.datasets.CIFAR10 in functions.py
