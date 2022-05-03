@@ -18,7 +18,7 @@ import functions
 # from threading import Thread
 
 parser=argparse.ArgumentParser()
-parser.add_argument('--offload', help='ARES or classic local mode', type= functions.str2bool, default= False)
+parser.add_argument('--split', help='ARES SPLIT', type= functions.str2bool, default= False)
 args=parser.parse_args()
 
 hostname = socket.gethostname().replace('-desktop', '')
@@ -29,18 +29,18 @@ split_layer = configurations.split_layer[index]
 LR = configurations.LR
 
 logger.info('Preparing Client')
-client = Client(index, ip_address, configurations.SERVER_ADDR, configurations.SERVER_PORT, datalen, 'VGG5', split_layer)
+client = Client(index, ip_address, configurations.SERVER_ADDR, configurations.SERVER_PORT, datalen, 'VGG', split_layer)
 
-offload = args.offload
+split = args.split
 first = True # First initializaiton control
-client.initialize(split_layer, offload, first, LR)
+client.initialize(split_layer, split, first, LR)
 first = False 
 
 logger.info('Preparing Data.')
 cpu_count = multiprocessing.cpu_count()
 trainloader, classes= functions.get_local_dataloader(index, cpu_count)
 
-if offload:
+if split:
 	logger.info('ARES Training')
 else:
 	logger.info('Classic local Training')
@@ -63,7 +63,7 @@ def power_monitor_thread(stop):
 			power = ((t.read()))
 
 		# print(power)	
-		with open(configurations.home + '/results/' + filename,'a', newline='') as file:
+		with open(configurations.home + '/slogs/' + filename,'a', newline='') as file:
 			writer = csv.writer(file)
 			writer.writerow([int(power)])
 			
@@ -89,7 +89,7 @@ def training_thread(LR):
 		#training time per round
 		training_time,training_time_pr, network_speed, average_time = client.train(trainloader, hostname)
 
-		if offload:
+		if split:
 			filename =''+ hostname+'-'+str(configurations.split_layer[index])+'_config_3_temp.csv'
 		else:
 			filename = ''+ hostname+'_config_3_temp.csv'
@@ -106,7 +106,7 @@ def training_thread(LR):
 
 		
 
-		with open(configurations.home + '/results/' + filename,'a', newline='') as file:
+		with open(configurations.home + '/slogs/' + filename,'a', newline='') as file:
 			writer = csv.writer(file)
 			writer.writerow([network_speed,training_time_pr, training_time, average_time])
 
@@ -117,7 +117,7 @@ def training_thread(LR):
 
 		logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 		s_time_rebuild = time.time()
-		if offload:
+		if split:
 			configurations.split_layer = client.recv_msg(client.sock)[1]
 			#config.split_layer = [2]
 			# print(config.split_layer)
@@ -125,7 +125,7 @@ def training_thread(LR):
 		if r > 49:
 			LR = configurations.LR * 0.1
 
-		client.reinitialize(configurations.split_layer[index], offload, first, LR)
+		client.reinitialize(configurations.split_layer[index], split, first, LR)
 		e_time_rebuild = time.time()
 		logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
 		logger.info('==> Reinitialization Finish')

@@ -13,27 +13,25 @@ sys.path.append('../')
 from ARES_training.Edge_Server import Edge_Server
 import configurations
 import functions
-#import PPO
 
 parser=argparse.ArgumentParser()
-parser.add_argument('--offload', help='ARES or local mode', type= functions.str2bool, default= False)
+parser.add_argument('--split', help='ARES SPLIT', type= functions.str2bool, default= False)
 args=parser.parse_args()
 
 LR = configurations.LR
-offload = args.offload
-first = True # First initializaiton control
+split = args.split
+first = True 
 ip_address = '192.168.1.38'
-# ip_address = '192.168.0.175'
 
-logger.info('Preparing Edge_Server.')
-Edge_Server = Edge_Server(0, ip_address, configurations.SERVER_PORT, 'VGG5')
-Edge_Server.initialize(configurations.split_layer, offload, first, LR)
+logger.info('Preparing Edge Server.')
+Edge_Server = Edge_Server(0, ip_address, configurations.SERVER_PORT, 'VGG')
+Edge_Server.initialize(configurations.split_layer, split, first, LR)
 first = False
 
-#if offload:
+#if split:
 	#handle changes of split layers
 
-if offload:
+if split:
 	logger.info('ARES Training')
 else:
 	logger.info('Local Training')
@@ -63,11 +61,11 @@ for r in range(configurations.R):
 	
     #++++++++++++++++++++++++++++++++++++++
 
-	if offload:
+	if split:
 		# ADAPT SPLIT LAYERS HERE!
 		# split_layers = [2]
 		# config.split_layer = split_layers
-		split_layers = Edge_Server.adaptive_offload(bandwidth)
+		split_layers = Edge_Server.adaptive_split(bandwidth)
 		splitlist = ''.join(str(e) for e in split_layers)
 		filename = 'ARES_split_'+splitlist+'_config_3_temp.csv'
 	else:
@@ -75,7 +73,7 @@ for r in range(configurations.R):
 		filename = 'classic_local_config_3_temp.csv'
 
 
-	with open(configurations.home +'/results/'+filename,'a', newline='') as file:
+	with open(configurations.home +'/slogs/'+filename,'a', newline='') as file:
 		writer = csv.writer(file)
 		writer.writerow([ trianing_time, test_acc])
     
@@ -90,6 +88,6 @@ for r in range(configurations.R):
 	if r > 49:
 		LR = configurations.LR * 0.1
 
-	Edge_Server.reinitialize(split_layers, offload, first, LR)
+	Edge_Server.reinitialize(split_layers, split, first, LR)
 	logger.info('==> Reinitialization Finish')
 

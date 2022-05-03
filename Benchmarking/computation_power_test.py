@@ -65,7 +65,7 @@ class Client(Wireless):
 				self.optimizer.zero_grad()
 				outputs = self.net(inputs)
 
-				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
+				msg = ['MSG_INTERMEDIATE_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
 				self.send_msg(self.sock, msg)
 				gradients = self.recv_msg(self.sock)[1].to(self.device)
 
@@ -82,14 +82,14 @@ class Client(Wireless):
 		return e_time_total - s_time_total
 		
 	def upload(self):
-		msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
+		msg = ['MSG_SUB_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
 		self.send_msg(self.sock, msg)
 
 	def reinitialize(self, split_layers, offload, first, LR):
 		self.initialize(split_layers, offload, first, LR)
 
 logger.info('Preparing Client')
-client = Client(1, '192.168.5.22', 50000, 'VGG5', 6)
+client = Client(1, '192.168.5.22', 50000, 'VGG', 6)
 
 offload = False
 first = True 

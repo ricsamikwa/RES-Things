@@ -29,7 +29,7 @@ class VGG(nn.Module):
 		if self.location == 'Client':
 			cfg = cfg[:self.split_layer+1]
 
-		if self.location == 'Unit': # Get the holistic model
+		if self.location == 'Unit': 
 			pass
 
 		for x in cfg:

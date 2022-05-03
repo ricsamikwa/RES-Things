@@ -1,3 +1,3 @@
-# RES-Things
-### Adaptive  Resource-Aware  Split-Learning for Internet of Things (RES-Things),  a  framework for efficient model  training in IoT systems. 
-RES-Things accelerates local training in computationally constrained devices and minimises stragglers in the training through device-targeted offloading  strategies while  accounting  for  time-varying  network throughput  and  computing  resources.  Our  solution  takes  into account  application  constraints/objectives  to mitigate  training optimisation tradeoffs  in  terms of  energy  consumption,  training  time  and  accuracy.
+# Adaptive REsource-aware Split learning (ARES) for Internet of Things
+### A scheme for efficient decentralised training in IoT systems. 
+ARES accelerates local training in resource-constrained devices and minimizes the effect of stragglers on the training through device-targeted split points while accounting for time-varying network throughput and computing resources. ARES takes into account application constraints (energy sensitivity policy) to mitigate training optimization tradeoffs in terms of energy consumption and training time.

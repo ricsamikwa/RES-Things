@@ -31,7 +31,7 @@ class Client(Wireless):
 		self.model_name = model_name
 		self.uninet = functions.get_model('Unit', self.model_name, configurations.model_len-1, self.device, configurations.model_cfg)
 
-		logger.info('Connecting to Server.')
+		logger.info('Connecting to Edge.')
 		self.sock.connect((server_addr,server_port))
 
 	def initialize(self, split_layer, offload, first, LR):
@@ -45,7 +45,7 @@ class Client(Wireless):
 
 		self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
 					  momentum=0.9)
-		logger.debug('Receiving Global Weights..')
+		logger.debug('Weights..')
 		weights = self.recv_msg(self.sock)[1]
 		if self.split_layer == (configurations.model_len -1):
 			self.net.load_state_dict(weights)
@@ -69,7 +69,7 @@ class Client(Wireless):
 				power = ((t.read()))
 
 			# print(power)	
-			with open(configurations.home + '/results/' + filename,'a', newline='') as file:
+			with open(configurations.home + '/slogs/' + filename,'a', newline='') as file:
 				writer = csv.writer(file)
 				writer.writerow([int(power)])
 				
@@ -109,7 +109,7 @@ class Client(Wireless):
 		time_tota_temp = 0
 
 		iteration_count = 0
-		nice_flag = True
+		nice_flag = False
 
 		if self.split_layer == (configurations.model_len -1): # Classic local training
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
@@ -128,7 +128,7 @@ class Client(Wireless):
 				self.optimizer.zero_grad()
 				outputs = self.net(inputs)
 
-				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
+				msg = ['MSG_INTERMEDIATE_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
 				
 				self.send_msg(self.sock, msg)
 				# print(e_time_tota_temp - s_time_tota_temp)
@@ -164,7 +164,7 @@ class Client(Wireless):
 		logger.info('training_time_per_iteration: ' + str(training_time_pr))
 		# logger.info('average_receiving_time: ' + str(average_time))
 
-		msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
+		msg = ['MSG_TIME_ITERATION', self.ip, training_time_pr]
 		self.send_msg(self.sock, msg)
   
 		# if hostname[0:3] == 'nano':
@@ -175,7 +175,7 @@ class Client(Wireless):
 		return e_time_total - s_time_total, training_time_pr, network_speed, average_time
 		
 	def upload(self):
-		msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
+		msg = ['MSG_SUB_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
 		self.send_msg(self.sock, msg)
 
 	def reinitialize(self, split_layers, offload, first, LR):

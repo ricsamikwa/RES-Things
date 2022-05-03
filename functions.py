@@ -48,7 +48,7 @@ def recv_msg(sock, expect_msg_type=None):
 	logger.debug(msg[0]+'received from'+str(sock.getpeername()[0])+':'+str(sock.getpeername()[1]))
 
 	if (expect_msg_type is not None) and (msg[0] != expect_msg_type):
-		raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
+		raise Exception("Error: received" + msg[0] + " instead of " + expect_msg_type)
 	return msg
 
 def get_model(location, model_name, layer, device, cfg):

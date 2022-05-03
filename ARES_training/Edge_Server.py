@@ -36,9 +36,9 @@ class Edge_Server(Wireless):
 
 		while len(self.client_socks) < configurations.K:
 			self.sock.listen(5)
-			logger.info("Incoming Connections...")
+			logger.info("CONNECTIONS.")
 			(client_sock, (ip, port)) = self.sock.accept()
-			logger.info('connection from ' + str(ip))
+			logger.info('connection ' + str(ip))
 			logger.info(client_sock)
 			self.client_socks[str(ip)] = client_sock
 
@@ -94,12 +94,12 @@ class Edge_Server(Wireless):
 		for i in range(len(client_ips)):
 			if configurations.split_layer[i] == (configurations.model_len -1):
 				self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_no_offloading, args=(client_ips[i],))
-				logger.info(str(client_ips[i]) + ' no offloading training start')
+				logger.info(str(client_ips[i]) + 'training start')
 				self.threads[client_ips[i]].start()
 			else:
 				logger.info(str(client_ips[i]))
 				self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_offloading, args=(client_ips[i],))
-				logger.info(str(client_ips[i]) + ' offloading training start')
+				logger.info(str(client_ips[i]) + 'training start')
 				self.threads[client_ips[i]].start()
 
 		for i in range(len(client_ips)):
@@ -107,10 +107,8 @@ class Edge_Server(Wireless):
 
 		self.ttpi = {} # Training time per iteration
 		for s in self.client_socks:
-			msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
+			msg = self.recv_msg(self.client_socks[s], 'MSG_TIME_ITERATION')
 			self.ttpi[msg[1]] = msg[2]
-
-		self.offloading = self.get_offloading(self.split_layers)
 
 		return self.bandwidth
 
@@ -128,7 +126,7 @@ class Edge_Server(Wireless):
 		iteration = 50 # verify this number 50000/(5*100) = 100, but we have 50 iterations from the data ?
 		# logger.info(str(iteration) + ' iterations!!')
 		for i in range(iteration):
-			msg = self.recv_msg(self.client_socks[client_ip], 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
+			msg = self.recv_msg(self.client_socks[client_ip], 'MSG_INTERMEDIATE_ACTIVATIONS_CLIENT_TO_SERVER')
 			smashed_layers = msg[1]
 			labels = msg[2]
 			# logger.info(' received smashed data !!')
@@ -139,17 +137,16 @@ class Edge_Server(Wireless):
 			loss.backward()
 			self.optimizers[client_ip].step()
 
-			# Send gradients to client
-			msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_'+str(client_ip), inputs.grad]
+			msg = ['MSG_INTERMEDIATE_GRADIENTS_SERVER_TO_CLIENT_'+str(client_ip), inputs.grad]
 			self.send_msg(self.client_socks[client_ip], msg)
 
-		logger.info(str(client_ip) + ' offloading training end')
-		return 'Finish'
+		logger.info(str(client_ip) + 'training end')
+		return 'Done'
 
 	def aggregate(self, client_ips):
 		w_local_list =[]
 		for i in range(len(client_ips)):
-			msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
+			msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_SUB_WEIGHTS_CLIENT_TO_SERVER')
 			if configurations.split_layer[i] != (configurations.model_len -1):
 				w_local = (functions.concat_weights(self.uninet.state_dict(),msg[1],self.nets[client_ips[i]].state_dict()),configurations.N / configurations.K)
 				w_local_list.append(w_local)
@@ -187,65 +184,20 @@ class Edge_Server(Wireless):
 		return acc
 
 	# The function to change more
-	def adaptive_offload(self, bandwidth):
+	def adaptive_split(self, bandwidth):
 		
-		#+++++++++++++++++++++++++++++++++
-		# logger.info('Preparing Device')
-		# benchClient = BenchClient(1, '192.168.1.100', 50000, 'VGG5', 6)
+		logger.info('Preparing Device')
+		benchClient = BenchClient(1, '192.168.1.100', 50000, 'VGG', 6)
 
-		# s_time_rebuild = time.time()
-		# offloading_strategy = benchClient.ARES_optimiser(0.4, bandwidth[config.CLIENTS_LIST[0]]) + 1
-		# e_time_rebuild = time.time()
-		# print("Current offloading strategy: "+ str(offloading_strategy))
-		# print(('Optimisation time: ' + str(e_time_rebuild - s_time_rebuild)))
-		# config.split_layer = [1, offloading_strategy]
-		#+++++++++++++++++++++++++++++++++
+		offloading_strategy = benchClient.ARES_optimiser(0.6, bandwidth[configurations.CLIENTS_LIST[0]]) + 1
+		print("Current Strategy: "+ str(offloading_strategy))
+		# strategy configuration - refactoring
+		configurations.split_layer = [1,3,4,5,5]
+		logger.info('Next Round : ' + str(configurations.split_layer))
 
-		# 1 3 5 splitting same hardware configuration
-		configurations.split_layer = [1, 4]
-		#++++++++++++++++++++++++++++++++
-		# config.split_layer = [5]
-		
-		logger.info('Next Round OPs: ' + str(configurations.split_layer))
-
-		msg = ['SPLIT_LAYERS',configurations.split_layer]
+		msg = ['SPLIT_VECTOR',configurations.split_layer]
 		self.scatter(msg)
 		return configurations.split_layer
-
-	def action_to_layer(self, action): # Expanding group actions to each device
-		#first caculate cumulated flops
-		model_state_flops = []
-		cumulated_flops = 0
-
-		for l in configurations.model_cfg[configurations.model_name]:
-			cumulated_flops += l[5]
-			model_state_flops.append(cumulated_flops)
-
-		model_flops_list = np.array(model_state_flops)
-		model_flops_list = model_flops_list / cumulated_flops
-
-		split_layer = []
-		for v in action:
-			idx = np.where(np.abs(model_flops_list - v) == np.abs(model_flops_list - v).min()) 
-			idx = idx[0][-1]
-			if idx >= 5: 
-				idx = 6
-			split_layer.append(idx)
-		return split_layer
-
-	def get_offloading(self, split_layer):
-		offloading = {}
-		workload = 0
-
-		assert len(split_layer) == len(configurations.CLIENTS_LIST)
-		for i in range(len(configurations.CLIENTS_LIST)):
-			for l in range(len(configurations.model_cfg[configurations.model_name])):
-				if l <= split_layer[i]:
-					workload += configurations.model_cfg[configurations.model_name][l][5]
-			offloading[configurations.CLIENTS_LIST[i]] = workload / configurations.total_flops
-			workload = 0
-
-		return offloading
 
 
 	def reinitialize(self, split_layers, offload, first, LR):

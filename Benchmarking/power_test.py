@@ -13,7 +13,7 @@ while True:
     with open('/sys/bus/i2c/drivers/ina3221x/6-0040/iio:device0/in_power0_input') as t:
         power = ((t.read()))
 
-    with open('./power_results/' + filename,'a', newline='') as file:
+    with open('./power_logs/' + filename,'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerow([int(power)])
         
