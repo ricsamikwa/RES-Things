@@ -16,14 +16,13 @@ Some pre-built PyTorch and torchvision pip wheel:
 * struct
 * pickle
 * numpy
-* json
-* torch
 * threading
 * time
 * matplotlib
 * torch
 * torchvision
 * sys
+* json
 
 #### Dataset
 CIFAR10 datasets can be downloaded manually and put into the `datasets/CIFAR10` folder. 
