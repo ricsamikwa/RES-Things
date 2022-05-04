@@ -1,7 +1,7 @@
 # Adaptive REsource-aware Split learning (ARES) for Internet of Things
-### A scheme for efficient decentralised training in IoT systems. 
+### A scheme for efficient model training in IoT systems. 
 
-ARES accelerates local training in resource-constrained devices and minimizes the effect of stragglers on the training through device-targeted split points while accounting for time-varying network throughput and computing resources. ARES takes into account application constraints (energy sensitivity policy) to mitigate training optimization tradeoffs in terms of energy consumption and training time.
+ARES accelerates training in resource-constrained devices and minimizes the effect of stragglers on the training through device-targeted split points while accounting for time-varying network throughput and computing resources. ARES takes into account application constraints (using energy sensitivity policy) to mitigate training optimization tradeoffs in terms of energy consumption and training time.
 
 ## Requirements
 
@@ -10,8 +10,8 @@ ARES accelerates local training in resource-constrained devices and minimizes th
 Python 3.9 with Pytorch version 1.10 and torchvision 0.10. IoT device (NVIDIA Jetson Nano and Raspberry Pi). 
 Some pre-built PyTorch and torchvision pip wheel:
 
-- Jetson: https://forums.developer.nvidia.com/t/pytorch-for-jetson-version-1-8-0-now-available/72048
-- Pyotrch: https://discuss.pytorch.org/t/pytorch-1-3-wheels-for-raspberry-pi-python-3-7/58580
+- Jetson Nano: https://forums.developer.nvidia.com/t/pytorch-for-jetson-version-1-8-0-now-available/72048
+- Pytorch (Pi): https://discuss.pytorch.org/t/pytorch-1-3-wheels-for-raspberry-pi-python-3-7/58580
 
 #### Packages
 
