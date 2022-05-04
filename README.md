@@ -7,7 +7,7 @@ ARES accelerates training in resource-constrained devices and minimizes the effe
 
 ### Setting up the environment
 
-Python 3.9 with Pytorch version 1.10 and torchvision 0.10. IoT device (NVIDIA Jetson Nano and Raspberry Pi). 
+Python 3.7+ with Pytorch and torchvision 0.10 for IoT devices (NVIDIA Jetson Nano and Raspberry Pi) and Server. 
 Some pre-built PyTorch and torchvision pip wheel:
 
 - Jetson Nano: https://forums.developer.nvidia.com/t/pytorch-for-jetson-version-1-8-0-now-available/72048
