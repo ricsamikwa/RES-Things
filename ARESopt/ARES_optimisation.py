@@ -191,6 +191,7 @@ class BenchClient(Wireless):
 
 	def measure_power(self):
 
+		# temp
 		# MAXN comp: 7253.297700323392
 		# MAXN trans: 2319.590057210495
 		# MAXN rec: 2260.3782324677427
@@ -229,7 +230,7 @@ class BenchClient(Wireless):
 		server_backward_splitwise_latency = [0,0,0,0,0,0,0]
 		device_backward_splitwise_latency = [0,0,0,0,0,0,0]
 
-		# config.split_layer = 6
+	
 		for r in range(configurations.model_len - 1, -1, -1):
 			# config.split_layer = r
 			if r < configurations.model_len - 1:
