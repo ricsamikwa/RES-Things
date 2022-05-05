@@ -1,3 +1,4 @@
 datasets/
 __pycache__/
-ARES_training/__pycache__/
+*.py[cod]
+*$py.class
