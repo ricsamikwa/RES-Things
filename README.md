@@ -11,7 +11,7 @@ Python 3.7+ with Pytorch and torchvision for IoT devices (NVIDIA Jetson Nano and
 Some pre-built PyTorch and torchvision pip wheel:
 
 - Jetson Nano: https://forums.developer.nvidia.com/t/pytorch-for-jetson-version-1-8-0-now-available/72048
-- Pytorch (Pi): https://discuss.pytorch.org/t/pytorch-1-3-wheels-for-raspberry-pi-python-3-7/58580
+- Pytorch (Pi): https://discuss.pytorch.org/t/installing-pytorch-on-raspberry-pi-3/25215/12
 
 #### Packages
 
