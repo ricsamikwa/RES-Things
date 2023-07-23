@@ -95,3 +95,19 @@ To modify network traffic run:
 ```
 sudo sh ./clean_traffic_shapper.sh
 ```
+Paper: https://doi.org/10.1016/j.comnet.2022.109380
+
+## Citation
+
+Please cite the paper as follows: Samikwa, Eric, Antonio Di Maio, and Torsten Braun. "ARES: Adaptive Resource-Aware Split Learning for Internet of Things." Computer Networks 218 (2022): 109380. 
+```
+@article{samikwa2022ares,
+  title={ARES: Adaptive Resource-Aware Split Learning for Internet of Things},
+  author={Samikwa, Eric and Di Maio, Antonio and Braun, Torsten},
+  journal={Computer Networks},
+  volume={218},
+  pages={109380},
+  year={2022},
+  publisher={Elsevier}
+}
+```
